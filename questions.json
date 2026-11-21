@@ -1,0 +1,158 @@
+[
+  {
+    "category": "Python",
+    "question": "Что выведет print(2 + 3)?",
+    "answers": ["5", "23", "2 + 3", "ошибка"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Как в Python начинается комментарий?",
+    "answers": ["#", "//", "--", "/*"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Какая функция спрашивает текст у пользователя?",
+    "answers": ["input()", "print()", "ask()", "read()"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Что делает len('кот')?",
+    "answers": ["возвращает 3", "возвращает 'кот'", "печатает кот", "удаляет строку"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Какой тип у значения 3.14?",
+    "answers": ["float", "int", "str", "bool"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Как достать имя из словаря pet = {'name': 'Пуся'}?",
+    "answers": ["pet['name']", "pet.name()", "pet(name)", "pet[0]"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Что выведет print(10 // 3)?",
+    "answers": ["3", "3.33", "1", "30"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Какое слово создаёт функцию?",
+    "answers": ["def", "func", "function", "make"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Какой цикл повторяется, пока условие верно?",
+    "answers": ["while", "for", "if", "loop"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Что вернёт 'ab' * 2?",
+    "answers": ["'abab'", "'ab2'", "4", "ошибка"],
+    "correct": 0
+  },
+  {
+    "category": "Python",
+    "question": "Какой модуль сохраняет словари в файл .json?",
+    "answers": ["json", "random", "time", "math"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Как по-английски «яблоко»?",
+    "answers": ["apple", "orange", "bread", "table"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Что значит слово «sheep»?",
+    "answers": ["овечка", "корабль", "сон", "дешёвый"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Как по-английски «дракон»?",
+    "answers": ["dragon", "dog", "drum", "dream"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Что значит «worm»?",
+    "answers": ["червяк", "тёплый", "война", "слово"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Как по-английски «пингвин»?",
+    "answers": ["penguin", "pigeon", "pumpkin", "panda"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Выбери правильно: She ___ a cat.",
+    "answers": ["has", "have", "having", "is have"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Что значит «happy»?",
+    "answers": ["счастливый", "голодный", "уставший", "злой"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Прошедшее время от «go»:",
+    "answers": ["went", "goed", "gone", "going"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Как по-английски «учиться»?",
+    "answers": ["to learn", "to sleep", "to eat", "to play"],
+    "correct": 0
+  },
+  {
+    "category": "Английский",
+    "question": "Множественное число от «mouse»:",
+    "answers": ["mice", "mouses", "mousies", "meese"],
+    "correct": 0
+  },
+  {
+    "category": "Знания",
+    "question": "Чем в основном питается панда?",
+    "answers": ["бамбуком", "рыбой", "мясом", "орехами"],
+    "correct": 0
+  },
+  {
+    "category": "Знания",
+    "question": "Где живут почти все пингвины?",
+    "answers": ["в Южном полушарии", "на Северном полюсе", "в пустыне", "в джунглях"],
+    "correct": 0
+  },
+  {
+    "category": "Знания",
+    "question": "Какая планета ближе всех к Солнцу?",
+    "answers": ["Меркурий", "Венера", "Марс", "Земля"],
+    "correct": 0
+  },
+  {
+    "category": "Знания",
+    "question": "Сколько ног у паука?",
+    "answers": ["8", "6", "10", "4"],
+    "correct": 0
+  },
+  {
+    "category": "Знания",
+    "question": "Зачем червяки нужны почве?",
+    "answers": ["рыхлят и удобряют её", "делают её твёрже", "сушат её", "ни зачем"],
+    "correct": 0
+  }
+]
