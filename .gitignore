@@ -1,3 +1,7 @@
-save.json
+# старая версия на Python/tkinter (есть в истории git, в репозиторий больше не кладём)
+_old_python/
 __pycache__/
 *.pyc
+# секреты и база данных сервера
+server/.env
+server/data/

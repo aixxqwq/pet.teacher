@@ -1,0 +1,21 @@
+# Настройки для хостинга Render (render.com): Render прочитает этот файл сам.
+services:
+  - type: web
+    name: bilim-buddy
+    runtime: python
+    plan: free
+    buildCommand: pip install -r server/requirements.txt
+    startCommand: python -m uvicorn server.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: TZ
+        value: Asia/Almaty
+      # Эти три значения Render попросит ввести при создании — они секретные и в GitHub не попадают
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_USERS
+        sync: false
