@@ -1,0 +1,18 @@
+# «Будильник» для сайта: бесплатный Render усыпляет сайт после 15 минут без посетителей.
+# GitHub сам заходит на сайт примерно раз в 10 минут, чтобы он не засыпал.
+# GitHub иногда запускает это с опозданием, поэтому сайт всё же может изредка уснуть.
+# Выключить: на github.com → вкладка Actions → «Будильник для сайта» → ⋯ → Disable workflow.
+name: Будильник для сайта
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:   # кнопка «Run workflow» для ручного запуска
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Разбудить сайт
+        run: curl -fsS --retry 3 --retry-delay 20 --max-time 90 https://bilim-buddy.onrender.com/api/health
