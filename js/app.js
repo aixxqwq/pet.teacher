@@ -199,7 +199,7 @@
               <h3>Учёба</h3>
               <p class="muted">Английский от A1 до C1, Python, математика, общие знания — или свои вопросы.</p>
               <div class="chips"><span class="chip">+3 сытости</span><span class="chip">+10…30 XP</span></div>
-              <a class="btn" href="#/learn">К вопросам <span class="arr">${I.arrow}</span></a>
+              <a class="btn" href="#/learn"><span class="lbl-long">К вопросам</span><span class="lbl-short">Учиться</span> <span class="arr">${I.arrow}</span></a>
             </div>
           </article>
           <article class="card action-card">
@@ -208,7 +208,7 @@
               <h3>Перерыв</h3>
               <p class="muted">Немного музыки и отдыха от учёбы. Настроение растёт, но тратится энергия.</p>
               <div class="chips"><span class="chip">+3 настроения</span><span class="chip">−2 энергии</span></div>
-              <button class="btn btn-sun" id="actPlay">Сделать перерыв</button>
+              <button class="btn btn-sun" id="actPlay"><span class="lbl-long">Сделать перерыв</span><span class="lbl-short">Играть</span></button>
             </div>
           </article>
           <article class="card action-card">
@@ -217,7 +217,7 @@
               <h3>Отдых</h3>
               <p class="muted">Подушка, колпак и крепкий сон. Энергия восстанавливается быстрее всего.</p>
               <div class="chips"><span class="chip">+4 энергии</span></div>
-              <button class="btn" id="actSleep">Уложить спать</button>
+              <button class="btn" id="actSleep"><span class="lbl-long">Уложить спать</span><span class="lbl-short">Спать</span></button>
             </div>
           </article>
         </div>

@@ -948,3 +948,11 @@ body.zen .focus-side:hover { opacity: 1; }
   body.guest .logo span { display: none; }
   body.guest .top-right { gap: 6px; }
 }
+
+/* короткие подписи кнопок на телефоне, чтобы не переносились на вторую строку */
+.lbl-short { display: none; }
+@media (max-width: 760px) {
+  .action-card .btn { width: 100%; justify-content: center; white-space: nowrap; font-size: 13px; padding: 9px 4px; }
+  .action-card .lbl-long { display: none; }
+  .action-card .lbl-short { display: inline; }
+}
