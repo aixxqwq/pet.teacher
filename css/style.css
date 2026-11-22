@@ -933,3 +933,18 @@ body.zen .focus-side:hover { opacity: 1; }
   .adm-day span { font-size: 8.5px; }
   .adm-route { grid-template-columns: 100px 1fr 34px; }
 }
+
+/* ---------- «Войти» бледная, «Регистрация» яркая ---------- */
+.acc-chip:not(.in):not(.reg) { background: rgba(255, 255, 255, .55); color: var(--ink); border: 1px solid rgba(30, 26, 60, .1); }
+.acc-chip.reg { background: var(--grad); color: #fff; box-shadow: 0 6px 18px rgba(123, 97, 255, .35); }
+@media (max-width: 760px) {
+  .acc-chip { padding: 0 10px; font-size: 13px; }
+}
+@media (max-width: 400px) {
+  .acc-chip { padding: 0 8px; font-size: 12px; }
+}
+/* узкий телефон: если видны обе кнопки, прячем надпись у логотипа (значок остаётся) */
+@media (max-width: 480px) {
+  body.guest .logo span { display: none; }
+  body.guest .top-right { gap: 6px; }
+}

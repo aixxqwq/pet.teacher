@@ -103,6 +103,12 @@
       acc.innerHTML = a ? `<span class="acc-dot">${esc(a.username[0].toUpperCase())}</span>` : "Войти";
       acc.title = a ? `Аккаунт: ${a.username}` : "Войти в аккаунт";
       acc.classList.toggle("in", !!a);
+      // кнопки «Войти» и «Регистрация» сразу открывают нужную вкладку
+      const reg = $("#regChip");
+      reg.style.display = a ? "none" : "";
+      document.body.classList.toggle("guest", !a);
+      acc.onclick = (e) => { if (!Api.auth()) { e.preventDefault(); accMode = "login"; go("#/account"); } };
+      reg.onclick = (e) => { e.preventDefault(); accMode = "register"; go("#/account"); };
     }
     const chip = $("#lvlChip");
     if (!pet) { chip.style.display = "none"; return; }
