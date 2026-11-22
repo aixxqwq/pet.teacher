@@ -1647,7 +1647,7 @@
   //  Админ: статистика сайта (видна только логинам из ADMIN_USERS в server/.env)
   // ============================================================
   const ROUTE_NAMES = { home: "Питомец", learn: "Учёба", quiz: "Вопросы", cards: "Карточки", review: "Повторение карточек",
-    ielts: "IELTS", tutor: "Учитель", focus: "Фокус", my: "Мои вопросы", new: "Выбор питомца", account: "Аккаунт", admin: "Админ" };
+    ielts: "IELTS", tutor: "ИИ-учитель", focus: "Фокус", my: "Мои вопросы", new: "Выбор питомца", account: "Аккаунт", admin: "Админ" };
 
   async function adminPage() {
     view.innerHTML = `<section class="page-head reveal"><div>
