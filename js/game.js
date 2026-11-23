@@ -61,7 +61,9 @@ const Game = (() => {
   }
 
   const limit = (v) => Math.max(0, Math.min(MAX, v));
-  const today = () => new Date().toISOString().slice(0, 10);
+  /** Дата в формате 2026-11-23 по местному времени (новый день начинается в полночь, а не по Гринвичу). */
+  const isoDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const today = () => isoDay();
 
   // ---------- питомец ----------
   function newPet(name, animal) {
@@ -184,6 +186,7 @@ const Game = (() => {
       pet.fun = limit(pet.fun - 1);
     }
     savePet(pet);
+    track({ answers: 1, correct: isCorrect ? 1 : 0, xp: res.gained });
     return res;
   }
   function play(pet) {
@@ -211,6 +214,7 @@ const Game = (() => {
     const s = dayStats();
     s.sessions += 1;
     s.minutes += minutes;
+    s.xp = (s.xp || 0) + gained;
     saveDayStats(s);
     return { gained, levelUp: level(pet) > old };
   }
@@ -222,6 +226,7 @@ const Game = (() => {
     savePet(pet);
     const s = dayStats();
     s.cards = (s.cards || 0) + 1;
+    s.xp = (s.xp || 0) + (grade >= 1 ? 3 : 1);
     saveDayStats(s);
     return { levelUp: level(pet) > old };
   }
@@ -240,6 +245,18 @@ const Game = (() => {
     const all = allStats();
     all[date] = s;
     writeJSON(KEY_STATS, all);
+  }
+  /** Прибавить к сегодняшней статистике: track({answers: 1, xp: 15}). Нужно для календаря активности. */
+  function track(add) {
+    const s = dayStats();
+    for (const [k, v] of Object.entries(add)) s[k] = (s[k] || 0) + v;
+    saveDayStats(s);
+  }
+  /** Насколько активным был день: 0 — ничего, 1–4 — от «чуть-чуть» до «очень много». */
+  function activityLevel(d) {
+    if (!d) return 0;
+    const score = (d.answers || 0) + (d.cards || 0) + (d.ielts || 0) * 5 + Math.round((d.minutes || 0) / 5);
+    return score === 0 ? 0 : score < 5 ? 1 : score < 15 ? 2 : score < 30 ? 3 : 4;
   }
   function totalFocusMinutes() {
     return Object.values(allStats()).reduce((sum, d) => sum + (d.minutes || 0), 0);
@@ -394,7 +411,7 @@ const Game = (() => {
     loadMistakes, addMistake, removeMistake,
     readJSON, writeJSON, newPet, savePet, loadPet, deleteSave, applyTimePassed,
     level, xpInLevel, stage, mood, feeling, answer, play, sleep, focusDone, breakDone, cardReviewed,
-    dayStats, totalFocusMinutes, addDistraction,
+    dayStats, allStats, track, activityLevel, isoDay, totalFocusMinutes, addDistraction,
     loadQuestions, loadMyQuestions, addMyQuestion, deleteMyQuestion,
     allTopics, levelsFor, difficulty, countFor, checkTyped, randomQuestion,
     exportSave, importSave,

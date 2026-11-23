@@ -956,3 +956,35 @@ body.zen .focus-side:hover { opacity: 1; }
   .action-card .lbl-long { display: none; }
   .action-card .lbl-short { display: inline; }
 }
+
+/* ---------- календарь активности ---------- */
+.cal-card { padding: 22px 24px; }
+.cal-sum { display: flex; gap: 8px; flex-wrap: wrap; }
+.cal-scroll { overflow-x: auto; margin-top: 14px; padding: 4px 4px 6px; scrollbar-width: thin; }
+.cal { --c: 22px; --g: 5px; display: grid; grid-template-columns: auto auto; gap: 6px 8px; width: max-content; margin: 0 auto; }
+.cal-months { grid-column: 2; grid-row: 1; display: grid; grid-auto-flow: column; grid-auto-columns: var(--c); gap: var(--g); font-size: 12px; color: var(--muted); height: 14px; }
+.cal-months span { white-space: nowrap; }
+.cal-wd { grid-column: 1; grid-row: 2; position: sticky; left: -4px; z-index: 1; padding: 0 4px; margin: 0 -4px; background: rgba(255, 255, 255, .92); border-radius: 6px; display: grid; grid-template-rows: repeat(7, var(--c)); gap: var(--g); font-size: 11.5px; color: var(--muted); line-height: var(--c); }
+.cal-grid { grid-column: 2; grid-row: 2; display: grid; grid-template-rows: repeat(7, var(--c)); grid-auto-flow: column; grid-auto-columns: var(--c); gap: var(--g); }
+.cal-grid i { display: block; border-radius: 5px; cursor: pointer; transition: transform .15s var(--ease); }
+.cal-grid i:hover, .cal-grid i.sel { transform: scale(1.25); box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px var(--violet); }
+.cal-grid i.future { visibility: hidden; }
+.cal-grid i.today { box-shadow: 0 0 0 2px #fff, 0 0 0 3.5px #FF7EB6; }
+.cal-grid .l0, .cal-legend .l0 { background: rgba(123, 97, 255, .09); }
+.cal-grid .l1, .cal-legend .l1 { background: #D9D0FF; }
+.cal-grid .l2, .cal-legend .l2 { background: #AE9BFF; }
+.cal-grid .l3, .cal-legend .l3 { background: #8A6CFF; }
+.cal-grid .l4, .cal-legend .l4 { background: linear-gradient(135deg, #6A4BFF, #D063F0); }
+.cal-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+.cal-info { display: grid; gap: 2px; font-size: 14px; min-height: 40px; }
+.cal-info span { color: var(--muted); }
+.cal-legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); }
+.cal-legend i { display: block; width: 12px; height: 12px; border-radius: 3px; }
+@media (max-width: 760px) {
+  .cal-card { padding: 16px 14px; }
+  .cal-card .list-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cal { --c: 12px; --g: 3px; }
+  .cal-months { font-size: 10px; }
+  .cal-wd { font-size: 9px; }
+  .cal-legend { display: none; }
+}

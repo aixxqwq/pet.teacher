@@ -152,6 +152,100 @@
       <div class="num"><b data-count="${d}">${d}</b><span>${plural(d, "день", "дня", "дней")} вместе</span></div>`;
   }
 
+  // ---------- календарь активности ----------
+  const MONTHS = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const MONTHS_GEN = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  const WEEKS = 26;   // полгода
+
+  function dayText(iso, d) {
+    const [, m, dd] = iso.split("-").map(Number);
+    const head = `${dd} ${MONTHS_GEN[m - 1]}${iso === Game.isoDay() ? " · сегодня" : ""}`;
+    if (!Game.activityLevel(d)) return `<b>${head}</b><span>Занятий не было</span>`;
+    const parts = [];
+    if (d.answers) parts.push(`${d.answers} ${plural(d.answers, "ответ", "ответа", "ответов")} (${d.correct || 0} верных)`);
+    if (d.minutes) parts.push(`${d.minutes} мин фокуса`);
+    if (d.cards) parts.push(`${d.cards} ${plural(d.cards, "карточка", "карточки", "карточек")}`);
+    if (d.ielts) parts.push(`${d.ielts} IELTS`);
+    if (d.xp) parts.push(`+${d.xp} XP`);
+    return `<b>${head}</b><span>${parts.join(" · ")}</span>`;
+  }
+
+  /** Сколько дней подряд ты занималась (если сегодня ещё не занималась, серия не сгорает до полуночи). */
+  function activeStreak(stats) {
+    const d = new Date();
+    if (!Game.activityLevel(stats[Game.isoDay(d)])) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (Game.activityLevel(stats[Game.isoDay(d)])) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+
+  function activityCalendar() {
+    const stats = Game.allStats();
+    const now = new Date();
+    const todayIso = Game.isoDay(now);
+    // начинаем с понедельника недели, которая была WEEKS-1 недель назад
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - (WEEKS - 1) * 7);
+    let cells = "", months = "", active = 0, lastMonth = -1;
+    for (let w = 0; w < WEEKS; w++) {
+      const monday = new Date(start); monday.setDate(start.getDate() + w * 7);
+      // подпись месяца — над неделей, в которой он начинается
+      let label = w === 0 ? monday.getMonth() : -1;
+      for (let i = 0; i < 7; i++) {
+        const x = new Date(monday); x.setDate(monday.getDate() + i);
+        if (x.getDate() === 1) label = x.getMonth();
+      }
+      months += `<span>${label >= 0 && label !== lastMonth ? MONTHS[label] : ""}</span>`;
+      if (label >= 0) lastMonth = label;
+      for (let i = 0; i < 7; i++) {
+        const day = new Date(monday); day.setDate(monday.getDate() + i);
+        const iso = Game.isoDay(day);
+        if (iso > todayIso) { cells += `<i class="future"></i>`; continue; }
+        const lvl = Game.activityLevel(stats[iso]);
+        if (lvl) active++;
+        cells += `<i class="l${lvl}${iso === todayIso ? " today" : ""}" data-day="${iso}"></i>`;
+      }
+    }
+    const streak = activeStreak(stats);
+    return `
+      <div class="card white cal-card">
+        <div class="list-head">
+          <h3>Календарь активности</h3>
+          <div class="cal-sum">
+            <span class="chip">🔥 ${streak} ${plural(streak, "день", "дня", "дней")} подряд</span>
+            <span class="chip">${active} ${plural(active, "активный день", "активных дня", "активных дней")} за полгода</span>
+          </div>
+        </div>
+        <div class="cal-scroll" id="calScroll">
+          <div class="cal">
+            <div class="cal-months">${months}</div>
+            <div class="cal-wd"><span>Пн</span><span></span><span>Ср</span><span></span><span>Пт</span><span></span><span>Вс</span></div>
+            <div class="cal-grid" id="calGrid">${cells}</div>
+          </div>
+        </div>
+        <div class="cal-foot">
+          <div class="cal-info" id="calInfo">${dayText(todayIso, stats[todayIso])}</div>
+          <div class="cal-legend">меньше <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> больше</div>
+        </div>
+      </div>`;
+  }
+
+  /** Нажала или навела на клеточку — внизу видно, что было в этот день. */
+  function bindCalendar() {
+    const grid = $("#calGrid");
+    if (!grid) return;
+    const sc = $("#calScroll");
+    sc.scrollLeft = sc.scrollWidth;   // на телефоне сразу показываем последние недели
+    const show = (cell) => {
+      if (!cell || !cell.dataset.day) return;
+      $$("#calGrid i.sel").forEach((x) => x.classList.remove("sel"));
+      cell.classList.add("sel");
+      $("#calInfo").innerHTML = dayText(cell.dataset.day, Game.allStats()[cell.dataset.day]);
+    };
+    grid.addEventListener("click", (e) => show(e.target.closest("i")));
+    grid.addEventListener("mouseover", (e) => show(e.target.closest("i")));
+  }
+
   function home() {
     const sp = Pets.SPECIES[pet.animal];
     view.innerHTML = `
@@ -227,6 +321,8 @@
         <div class="numbers reveal" id="numbers">${numbers()}</div>
       </section>
 
+      <section class="section reveal" id="calendar">${activityCalendar()}</section>
+
       <section class="section">
         <div class="card save-card">
           <div>
@@ -244,6 +340,7 @@
       </section>`;
 
     countUp($$("#numbers b"));
+    bindCalendar();
 
     const refresh = () => {
       $("#statCards").innerHTML = statCards();
@@ -1104,6 +1201,7 @@
     pet.xp += xp;
     pet.fun = Math.min(10, pet.fun + 1);
     Game.savePet(pet);
+    Game.track({ ielts: 1, xp });
     toast(`${text} +${xp} XP`, "★");
     if (Game.level(pet) > old) { confetti(); toast(`Новый уровень ${Game.level(pet)}!`, "★"); }
     updateHeader("ielts");
