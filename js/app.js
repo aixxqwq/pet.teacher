@@ -1186,7 +1186,7 @@
   const wordCount = (t) => (t.trim().match(/[A-Za-zА-Яа-яЁё0-9'’-]+/g) || []).length;
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  let ielts = { tab: "speaking", part: 1, p1: 0, p2: 0, q: 0, wkind: "t2", widx: 0 };
+  let ielts = { tab: "listening", part: 1, p1: 0, p2: 0, q: 0, wkind: "t2", widx: 0, lpart: 1, lrate: 1, rpass: 1, mkind: "writing" };
   ielts.p1 = rndIdx(IELTS.PART1);
   ielts.p2 = rndIdx(IELTS.PART2);
   ielts.widx = rndIdx(IELTS.TASK2);
@@ -1213,22 +1213,35 @@
       <section class="page-head reveal">
         <div>
           <span class="eyebrow" style="--i:0">IELTS</span>
-          <h1 style="--i:1">Speaking и Writing</h1>
-          <p style="--i:2">Пробные задания в формате экзамена на темы, которые постоянно встречаются на IELTS.
-            Тренируй речь с таймером и записью голоса, пиши эссе с подсчётом слов.</p>
+          <h1 style="--i:1">Мини-подготовка к IELTS</h1>
+          <p style="--i:2">Все четыре части экзамена: Listening, Reading, Speaking и Writing. Задания в точном формате IELTS,
+            проверка ответов, примерный band и образцы ответов уровня 8–9.</p>
         </div>
         ${petBox("focus")}
       </section>
       <div class="ielts-tabs">
         <div class="modes light" id="ieltsTabs">
-          <button data-tab="speaking" class="${ielts.tab === "speaking" ? "sel" : ""}">Speaking</button>
-          <button data-tab="writing" class="${ielts.tab === "writing" ? "sel" : ""}">Writing</button>
+          ${[["listening", "Listening"], ["reading", "Reading"], ["speaking", "Speaking"], ["writing", "Writing"], ["models", "Образцы"]]
+            .map(([k, n]) => `<button data-tab="${k}" class="${ielts.tab === k ? "sel" : ""}">${n}</button>`).join("")}
         </div>
         <span class="muted">Выполнено заданий: <b>${d.done.length}</b> · эссе сохранено: <b>${d.essays.length}</b></span>
       </div>
       <section class="quiz" style="margin-top:18px">
         <div class="quiz-card" id="ieltsMain"></div>
         <aside class="quiz-side">
+          ${ieltsSide()}
+        </aside>
+      </section>`;
+    $$("#ieltsTabs button").forEach((b) => b.onclick = () => { ielts.tab = b.dataset.tab; ieltsPage(); });
+    ({ listening: listeningView, reading: readingView, speaking: speakingView, writing: writingView, models: modelsView })[ielts.tab]();
+  }
+
+  /** Правая колонка IELTS: критерии и советы для текущей вкладки. */
+  function ieltsSide() {
+    const official = `<div class="card white"><b>Официальные пробные тесты</b>
+      <span class="hint">Настоящие задания экзамена секретные. Официальные примеры бесплатно публикуют сами организаторы:</span>
+      <div class="links">${IELTS_LR.OFFICIAL.map((o) => `<a href="${o.url}" target="_blank" rel="noopener">${esc(o.name)} ↗</a>`).join("")}</div></div>`;
+    if (ielts.tab === "speaking" || ielts.tab === "writing") return `
           <div class="card white">
             <b>Как оценивают ${ielts.tab === "speaking" ? "Speaking" : "Writing"}</b>
             <div class="crit">${IELTS.CRITERIA[ielts.tab].map(([n, t]) => `<label><input type="checkbox"><span><b>${n}</b>${t}</span></label>`).join("")}</div>
@@ -1237,12 +1250,276 @@
           <div class="card white ai-soon">
             <b>Проверка ИИ-учителем</b>
             <span class="hint">${ielts.tab === "writing" ? "Под текстом есть кнопка «Проверить ИИ»: экзаменатор оценит работу по 4 критериям и покажет ошибки."
-              : "Есть вопрос по ответу или лексике? Спроси на странице «Учитель»."}</span>
-          </div>
-        </aside>
-      </section>`;
-    $$("#ieltsTabs button").forEach((b) => b.onclick = () => { ielts.tab = b.dataset.tab; ieltsPage(); });
-    if (ielts.tab === "speaking") speakingView(); else writingView();
+              : "Есть вопрос по ответу или лексике? Спроси на странице «ИИ-учитель»."}</span>
+          </div>`;
+    if (ielts.tab === "listening") return `
+          <div class="card white"><b>Как устроен Listening</b>
+            <ul class="side-list">
+              <li>4 части, 40 вопросов, около 30 минут.</li>
+              <li><b>Part 1–2</b> — бытовые темы, <b>Part 3–4</b> — учёба и лекция.</li>
+              <li>Запись звучит <b>один раз</b>. Читай вопросы заранее.</li>
+              <li>Следи за лимитом слов: «ONE WORD AND/OR A NUMBER».</li>
+              <li>Орфография важна: ошибка в слове = неверный ответ.</li>
+            </ul>
+            <span class="hint">Здесь текст читает голос браузера: он звучит чуть роботизированно, но темп и формат как на экзамене.</span>
+          </div>${official}`;
+    if (ielts.tab === "reading") return `
+          <div class="card white"><b>Как устроен Reading</b>
+            <ul class="side-list">
+              <li>3 текста, 40 вопросов, 60 минут — по 20 минут на текст.</li>
+              <li>Сначала пробеги текст глазами за 2–3 минуты, потом читай вопросы.</li>
+              <li><b>TRUE / FALSE / NOT GIVEN</b> — про факты, <b>YES / NO / NOT GIVEN</b> — про мнение автора.</li>
+              <li>Ответы на вопросы одного типа обычно идут по порядку текста.</li>
+            </ul>
+          </div>${official}`;
+    return `
+          <div class="card white"><b>Как пользоваться образцами</b>
+            <ul class="side-list">
+              <li>Сначала напиши или скажи свой ответ, потом сравни с образцом.</li>
+              <li>Выпиши 5–10 фраз, которых у тебя не было, и используй их в следующих ответах.</li>
+              <li>Обрати внимание на структуру абзацев — её можно повторять в любой теме.</li>
+            </ul>
+          </div>${official}`;
+  }
+
+  // ---------- Listening, Reading, образцы: общие части ----------
+  const TFNG = ["TRUE", "FALSE", "NOT GIVEN"];
+  const YNG = ["YES", "NO", "NOT GIVEN"];
+  const norm = (s) => String(s).toLowerCase().replace(/[£%.,!?"'’]/g, "").replace(/\s+/g, " ").trim();
+
+  /** Вопросы одной части: группы с инструкциями, как в бланке экзамена. */
+  function renderGroups(groups) {
+    let n = 0;
+    return groups.map((g) => `
+      <div class="lr-group">
+        <p class="lr-instr">${esc(g.instr)}</p>
+        ${g.list && g.kind === "pick" && g.list.length > 3 ? `<div class="lr-list">${g.list.map(([k, t]) => `<span><b>${esc(k)}</b> ${esc(t)}</span>`).join("")}</div>` : ""}
+        ${g.example ? `<p class="muted lr-ex">${esc(g.example)}</p>` : ""}
+        ${g.title ? `<h4 class="lr-title">${esc(g.title)}</h4>` : ""}
+        ${g.qs.map((q) => {
+          n += 1;
+          const id = `q${n}`;
+          let input = "";
+          if (q.type === "gap") {
+            const [a, b] = q.text.split("___");
+            input = `<span class="lr-gap">${esc(a)}<input class="input lr-in" data-q="${n}" id="${id}" autocomplete="off" autocapitalize="off" spellcheck="false">${esc(b || "")}</span>`;
+            return `<div class="lr-q" data-n="${n}"><span class="lr-n">${n}</span>${input}<span class="lr-res"></span></div>`;
+          }
+          if (q.type === "mc") {
+            input = q.options.map((o, i) => { const L = "ABC"[i]; return `<label class="lr-opt"><input type="radio" name="${id}" value="${L}" data-q="${n}"><b>${L}</b> ${esc(o)}</label>`; }).join("");
+            return `<div class="lr-q" data-n="${n}"><span class="lr-n">${n}</span><div class="lr-body"><p>${esc(q.text)}</p>${input}</div><span class="lr-res"></span></div>`;
+          }
+          const opts = q.type === "tfng" ? (g.kind === "yng" ? YNG : TFNG) : g.list.map(([k]) => k);
+          input = `<div class="lr-seg">${opts.map((o) => `<label><input type="radio" name="${id}" value="${esc(o)}" data-q="${n}"><span>${esc(o)}</span></label>`).join("")}</div>`;
+          return `<div class="lr-q" data-n="${n}"><span class="lr-n">${n}</span><div class="lr-body"><p>${esc(q.text)}</p>${input}</div><span class="lr-res"></span></div>`;
+        }).join("")}
+      </div>`).join("");
+  }
+
+  /** Проверить ответы: подсветить верные и неверные, показать правильный ответ. */
+  function checkGroups(groups) {
+    const all = groups.flatMap((g) => g.qs);
+    let ok = 0;
+    all.forEach((q, i) => {
+      const n = i + 1;
+      const row = $(`.lr-q[data-n="${n}"]`);
+      let given = "";
+      if (q.type === "gap") given = $(`#q${n}`).value;
+      else { const r = $(`input[name="q${n}"]:checked`); given = r ? r.value : ""; }
+      const good = q.type === "gap" ? q.answer.some((a) => norm(a).replace(/\s/g, "") === norm(given).replace(/\s/g, "")) : given === q.answer;
+      if (good) ok++;
+      row.classList.remove("good", "bad");
+      row.classList.add(good ? "good" : "bad");
+      row.querySelector(".lr-res").innerHTML = good ? "✓" : `✗ <b>${esc(q.type === "gap" ? q.answer[0] : q.answer)}</b>`;
+    });
+    return { ok, total: all.length };
+  }
+
+  function resultBox(ok, total, extra = "") {
+    const b = IELTS_LR.band(ok, total);
+    return `<div class="card lr-score">
+      <div><b>${ok} / ${total}</b><span>верных ответов</span></div>
+      <div><b>≈ ${b}</b><span>примерный band, если бы так прошёл весь тест из 40 вопросов</span></div>
+      ${extra}</div>`;
+  }
+
+  function saveLR(id, ok, total) {
+    const d = ieltsData();
+    d.lr = d.lr || {};
+    const prev = d.lr[id];
+    if (!prev || ok > prev.ok) d.lr[id] = { ok, total, date: Date.now() };
+    ieltsSave(d);
+    ieltsReward(id, 10, `${id.startsWith("L") ? "Listening" : "Reading"}: ${ok}/${total}.`);
+  }
+  const bestLR = (id) => ((ieltsData().lr || {})[id]);
+
+  // ---------- Listening: текст озвучивает браузер ----------
+  const FEMALE = /female|zira|hazel|susan|libby|sonia|serena|samantha|karen|moira|tessa|kate|fiona|victoria|emma|amy|olivia|natasha|aria|jenny|sara|martha|catherine/i;
+  const MALE = /(^|\W)male|david|george|ryan|daniel|arthur|oliver|thomas|mark|guy|alex|fred|james|william|brian|eric|christopher|liam|rishi/i;
+  function pickVoices() {
+    const all = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
+    const pref = (re) => all.filter((v) => re.test(v.name)).sort((a, b) => (/GB/i.test(b.lang) - /GB/i.test(a.lang)));
+    const f = pref(FEMALE), m = pref(MALE).filter((v) => !FEMALE.test(v.name));
+    const any = all.sort((a, b) => (/GB/i.test(b.lang) - /GB/i.test(a.lang)));
+    return {
+      female: { v: f[0] || any[0], pitch: f[0] ? 1 : 1.25 },
+      female2: { v: f[1] || f[0] || any[1] || any[0], pitch: f[1] ? 1 : 1.4 },
+      male: { v: m[0] || any[1] || any[0], pitch: m[0] ? 1 : 0.75 },
+    };
+  }
+
+  let lrPlaying = false;
+  function stopSpeech() { lrPlaying = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
+
+  function playScript(test, rate, onEnd) {
+    stopSpeech();
+    const voices = pickVoices();
+    const lines = [];
+    test.script.forEach(([who, text]) => {
+      // Chrome обрывает длинные фразы, поэтому читаем по предложениям
+      text.split(/(?<=[.!?])\s+/).forEach((t) => lines.push([who, t]));
+    });
+    lrPlaying = true;
+    lines.forEach(([who, t], i) => {
+      const u = new SpeechSynthesisUtterance(t);
+      const kind = voices[test.voices[who]] || voices.female;
+      if (kind.v) { u.voice = kind.v; u.lang = kind.v.lang; } else u.lang = "en-GB";
+      u.pitch = kind.pitch;
+      u.rate = rate;
+      if (i === lines.length - 1) u.onend = () => { if (lrPlaying) { lrPlaying = false; onEnd(); } };
+      speechSynthesis.speak(u);
+    });
+  }
+
+  function listeningView() {
+    stopIeltsTimer();
+    stopSpeech();
+    const box = $("#ieltsMain");
+    const t = IELTS_LR.LISTENING[ielts.lpart - 1];
+    const best = bestLR(t.id);
+    const canSpeak = "speechSynthesis" in window;
+    if (canSpeak) speechSynthesis.getVoices();   // Chrome загружает список голосов не сразу — просим заранее
+    box.innerHTML = `
+      <div class="pills" id="lparts">${IELTS_LR.LISTENING.map((x) => `<button class="pill ${ielts.lpart === x.part ? "sel" : ""}" data-p="${x.part}">Part ${x.part}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
+      <div class="q-in" style="margin-top:22px">
+        <div class="q-num">Listening · Part ${t.part} · ${esc(t.title)}${best ? ` · лучший результат ${best.ok}/${best.total}` : ""}</div>
+        <p class="muted">${esc(t.about)}</p>
+      </div>
+      <div class="lr-player">
+        <button class="btn btn-sun" id="lPlay" ${canSpeak ? "" : "disabled"}>▶ Слушать</button>
+        <div class="modes light lr-speed" id="lSpeed">
+          <button data-r="0.85" class="${ielts.lrate === 0.85 ? "sel" : ""}">Медленнее</button>
+          <button data-r="1" class="${ielts.lrate === 1 ? "sel" : ""}">Как на экзамене</button>
+        </div>
+        <span class="hint" id="lHint">${canSpeak ? "На экзамене запись звучит один раз. Сначала прочитай вопросы, потом нажми «Слушать»." : "Этот браузер не умеет озвучивать текст. Попробуй Chrome, Edge или Safari."}</span>
+      </div>
+      <form id="lrForm" autocomplete="off">${renderGroups(t.groups)}</form>
+      <div class="row" style="margin-top:18px">
+        <button class="btn btn-sun" id="lCheck">Проверить ответы</button>
+        <button class="btn btn-ghost" id="lReset">Сбросить</button>
+      </div>
+      <div id="lrOut"></div>`;
+    $$("#lparts .pill").forEach((b) => b.onclick = () => { ielts.lpart = +b.dataset.p; listeningView(); });
+    $$("#lSpeed button").forEach((b) => b.onclick = () => { ielts.lrate = +b.dataset.r; $$("#lSpeed button").forEach((x) => x.classList.toggle("sel", x === b)); });
+    const play = $("#lPlay");
+    play.onclick = () => {
+      if (lrPlaying) { stopSpeech(); play.textContent = "▶ Слушать заново"; return; }
+      if (!speechSynthesis.getVoices().some((v) => /^en[-_]/i.test(v.lang))) {
+        $("#lHint").innerHTML = "В этом браузере нет английского голоса для озвучки. Открой сайт в Chrome, Edge или Safari (на телефоне тоже работает).";
+        return;
+      }
+      play.textContent = "■ Остановить";
+      $("#lHint").textContent = "Идёт запись… Отвечай прямо во время прослушивания.";
+      playScript(t, ielts.lrate, () => { play.textContent = "▶ Слушать заново"; $("#lHint").textContent = "Запись закончилась. Проверь, что все ответы вписаны, и нажми «Проверить»."; });
+    };
+    cleanup.push(stopSpeech);
+    $("#lrForm").onsubmit = (e) => e.preventDefault();
+    $("#lReset").onclick = () => listeningView();
+    $("#lCheck").onclick = () => {
+      stopSpeech();
+      play.textContent = "▶ Слушать заново";
+      const { ok, total } = checkGroups(t.groups);
+      saveLR(t.id, ok, total);
+      $("#lrOut").innerHTML = resultBox(ok, total, `<p class="lr-tip"><b>Совет:</b> ${esc(t.tips)}</p>`) + `
+        <details class="lr-script"><summary>Показать текст записи (transcript)</summary>
+          ${t.script.map(([who, text]) => `<p><b>${esc(who)}:</b> ${esc(text)}</p>`).join("")}
+        </details>`;
+      $("#lrOut").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  }
+
+  // ---------- Reading ----------
+  function readingView() {
+    stopIeltsTimer();
+    stopSpeech();
+    const box = $("#ieltsMain");
+    const r = IELTS_LR.READING[ielts.rpass - 1];
+    const best = bestLR(r.id);
+    box.innerHTML = `
+      <div class="pills" id="rparts">${IELTS_LR.READING.map((x, i) => `<button class="pill ${ielts.rpass === i + 1 ? "sel" : ""}" data-p="${i + 1}">Passage ${i + 1}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
+      <div class="q-num" style="margin-top:22px">Reading · ${esc(r.level)} · 10 вопросов · 20 минут${best ? ` · лучший результат ${best.ok}/${best.total}` : ""}</div>
+      <div class="w-bar" style="margin-top:10px">
+        <span class="chip" id="rt">${mmss(20 * 60)}</span>
+        <button class="btn btn-ghost btn-sm" id="rStart">Старт таймера</button>
+      </div>
+      <article class="lr-passage">
+        <h2>${esc(r.title)}</h2>
+        ${r.paras.map(([k, t]) => `<p><b class="lr-para">${esc(k)}</b>${esc(t)}</p>`).join("")}
+      </article>
+      <form id="lrForm" autocomplete="off">${renderGroups(r.groups)}</form>
+      <div class="row" style="margin-top:18px">
+        <button class="btn btn-sun" id="rCheck">Проверить ответы</button>
+        <button class="btn btn-ghost" id="rReset">Сбросить</button>
+      </div>
+      <div id="lrOut"></div>`;
+    $$("#rparts .pill").forEach((b) => b.onclick = () => { ielts.rpass = +b.dataset.p; readingView(); });
+    $("#lrForm").onsubmit = (e) => e.preventDefault();
+    $("#rReset").onclick = () => readingView();
+    $("#rStart").onclick = () => {
+      if (ieltsTimer) { stopIeltsTimer(); $("#rStart").textContent = "Продолжить"; return; }
+      let left = ielts.rLeft && ielts.rLeftId === r.id ? ielts.rLeft : 20 * 60;
+      $("#rStart").textContent = "Пауза";
+      ieltsTimer = setInterval(() => {
+        left -= 1;
+        ielts.rLeft = left; ielts.rLeftId = r.id;
+        $("#rt").textContent = mmss(Math.max(0, left));
+        $("#rt").className = "chip " + (left <= 180 ? "bad" : "");
+        if (left <= 0) { stopIeltsTimer(); Timer.chime(); toast("20 минут прошло! На экзамене пора переходить к следующему тексту.", "!"); }
+      }, 1000);
+      cleanup.push(stopIeltsTimer);
+    };
+    $("#rCheck").onclick = () => {
+      stopIeltsTimer();
+      ielts.rLeft = null;
+      const { ok, total } = checkGroups(r.groups);
+      saveLR(r.id, ok, total);
+      $("#lrOut").innerHTML = resultBox(ok, total, `<p class="lr-tip"><b>Совет:</b> NOT GIVEN — когда в тексте об этом просто ничего не сказано. FALSE — когда текст говорит обратное. Не додумывай за автора.</p>`);
+      $("#lrOut").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+  }
+
+  // ---------- Образцы ответов ----------
+  function modelsView() {
+    stopIeltsTimer();
+    stopSpeech();
+    const box = $("#ieltsMain");
+    const list = ielts.mkind === "writing" ? IELTS_MODELS.WRITING : IELTS_MODELS.SPEAKING;
+    box.innerHTML = `
+      <div class="pills" id="mkinds">
+        <button class="pill ${ielts.mkind === "writing" ? "sel" : ""}" data-k="writing">Эссе и письма</button>
+        <button class="pill ${ielts.mkind === "speaking" ? "sel" : ""}" data-k="speaking">Ответы Speaking</button>
+      </div>
+      <p class="muted" style="margin-top:16px">Ответы уровня band 8–9 на задания с этого сайта. Не заучивай их: экзаменаторы сразу узнают выученный текст.
+        Смотри, <b>как</b> они построены, и бери приёмы и фразы в свои ответы.</p>
+      <div class="models">${list.map((m, i) => `
+        <details class="model" ${i === 0 ? "open" : ""}>
+          <summary><span class="chip good">band ${esc(m.band)}</span><b>${esc(m.kind)}</b></summary>
+          ${m.prompt ? `<p class="model-prompt">${esc(m.prompt)}</p>` : ""}
+          ${m.text ? `<div class="model-text">${m.text.split(/\n\n+/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div><span class="hint">${wordCount(m.text)} слов</span>` : ""}
+          ${m.items ? m.items.map(([q, a]) => `<div class="model-qa"><p class="model-q">${esc(q)}</p><div class="model-text">${a.split(/\n\n+/).map((p) => `<p>${esc(p)}</p>`).join("")}</div></div>`).join("") : ""}
+          <div class="model-why"><b>Почему это высокий балл</b><ul>${m.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>
+        </details>`).join("")}</div>`;
+    $$("#mkinds .pill").forEach((b) => b.onclick = () => { ielts.mkind = b.dataset.k; modelsView(); });
   }
 
   // ---------- Speaking ----------
