@@ -115,6 +115,7 @@ const Game = (() => {
   }
   /** Поза питомца по его состоянию. */
   function feeling(pet) {
+    if (pet.rest) return pet.rest.kind === "sleep" ? "sleep" : "play";
     if (pet.energy <= 2) return "sleep";
     if (pet.food <= 3 || pet.fun <= 3) return "sad";
     return "idle";
@@ -189,20 +190,52 @@ const Game = (() => {
     track({ answers: 1, correct: isCorrect ? 1 : 0, xp: res.gained });
     return res;
   }
+  // ---------- сон и перерыв идут по времени ----------
+  // pet.rest = {kind: "sleep" | "break", start, until}. Пока он есть, раздел «Учёба» закрыт.
+  const REST_MS = { sleep: 5 * 60 * 1000, break: 2 * 60 * 1000 };
   function play(pet) {
+    if (pet.rest) return { ok: false, text: "Питомец уже отдыхает." };
     if (pet.energy < 2) return { ok: false, text: "Энергии не хватает. Сначала отдых." };
-    pet.fun = limit(pet.fun + 3);
     pet.energy = limit(pet.energy - 2);
     pet.food = limit(pet.food - 1);
-    pet.xp += 2;
+    pet.rest = { kind: "break", start: Date.now(), until: Date.now() + REST_MS.break };
     savePet(pet);
-    return { ok: true, text: "Перерыв пошёл на пользу. Настроение +3." };
+    return { ok: true, text: "Перерыв на 2 минуты начался." };
   }
   function sleep(pet) {
+    if (pet.rest) return { ok: false, text: "Питомец уже отдыхает." };
     if (pet.energy >= MAX) return { ok: false, text: "Энергия уже на максимуме." };
-    pet.energy = limit(pet.energy + 4);
+    pet.rest = { kind: "sleep", start: Date.now(), until: Date.now() + REST_MS.sleep };
     savePet(pet);
-    return { ok: true, text: "Сладких снов. Энергия +4." };
+    return { ok: true, text: "Питомец уснул на 5 минут." };
+  }
+  /** Сколько осталось отдыхать: {kind, left, part} или null. */
+  function restState(pet) {
+    if (!pet || !pet.rest) return null;
+    const r = pet.rest, total = r.until - r.start;
+    const left = Math.max(0, r.until - Date.now());
+    return { kind: r.kind, left, total, part: 1 - left / total };
+  }
+  /** Закончить отдых (сам по таймеру или кнопкой «Разбудить»). Награда — по тому, сколько успел отдохнуть. */
+  function finishRest(pet) {
+    const st = restState(pet);
+    if (!st) return null;
+    const full = st.left <= 0;
+    let text;
+    if (st.kind === "sleep") {
+      const add = full ? 4 : Math.max(1, Math.round(4 * st.part));
+      pet.energy = limit(pet.energy + add);
+      text = full ? `Выспался! Энергия +${add}.` : `Проснулся раньше времени. Энергия +${add}.`;
+    } else {
+      const add = full ? 3 : Math.max(1, Math.round(3 * st.part));
+      pet.fun = limit(pet.fun + add);
+      pet.xp += 2;
+      text = full ? `Перерыв окончен. Настроение +${add}.` : `Перерыв закончился раньше. Настроение +${add}.`;
+    }
+    const kind = st.kind;
+    delete pet.rest;
+    savePet(pet);
+    return { kind, full, text };
   }
   /** Закончили сессию фокуса: опыт за каждую минуту. */
   function focusDone(pet, minutes) {
@@ -410,7 +443,7 @@ const Game = (() => {
     MAX, XP_PER_LEVEL, TOPICS, TOPIC_META, MY_LEVEL, ALL, MISTAKES, TRAINER, sectionProgress,
     loadMistakes, addMistake, removeMistake,
     readJSON, writeJSON, newPet, savePet, loadPet, deleteSave, applyTimePassed,
-    level, xpInLevel, stage, mood, feeling, answer, play, sleep, focusDone, breakDone, cardReviewed,
+    level, xpInLevel, stage, mood, feeling, answer, play, sleep, restState, finishRest, REST_MS, focusDone, breakDone, cardReviewed,
     dayStats, allStats, track, activityLevel, isoDay, totalFocusMinutes, addDistraction,
     loadQuestions, loadMyQuestions, addMyQuestion, deleteMyQuestion,
     allTopics, levelsFor, difficulty, countFor, checkTyped, randomQuestion,

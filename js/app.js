@@ -300,8 +300,8 @@
             <div class="art">${petBox("play", "", "playPet")}</div>
             <div class="body">
               <h3>Перерыв</h3>
-              <p class="muted">Немного музыки и отдыха от учёбы. Настроение растёт, но тратится энергия.</p>
-              <div class="chips"><span class="chip">+3 настроения</span><span class="chip">−2 энергии</span></div>
+              <p class="muted">Две минуты отдыха: дыхание, разминка или мини-игра. Настроение растёт, но тратится энергия.</p>
+              <div class="chips"><span class="chip">2 минуты</span><span class="chip">+3 настроения</span><span class="chip">−2 энергии</span></div>
               <button class="btn btn-sun" id="actPlay"><span class="lbl-long">Сделать перерыв</span><span class="lbl-short">Играть</span></button>
             </div>
           </article>
@@ -309,8 +309,8 @@
             <div class="art">${petBox("sleep", "", "sleepPet")}</div>
             <div class="body">
               <h3>Отдых</h3>
-              <p class="muted">Подушка, колпак и крепкий сон. Энергия восстанавливается быстрее всего.</p>
-              <div class="chips"><span class="chip">+4 энергии</span></div>
+              <p class="muted">Подушка, колпак и крепкий сон на 5 минут. Пока питомец спит, учёба закрыта.</p>
+              <div class="chips"><span class="chip">5 минут</span><span class="chip">+4 энергии</span></div>
               <button class="btn" id="actSleep"><span class="lbl-long">Уложить спать</span><span class="lbl-short">Спать</span></button>
             </div>
           </article>
@@ -359,23 +359,27 @@
     };
 
     $("#actPlay").onclick = () => {
+      if (Game.restState(pet)) { go("#/rest"); return; }
       const r = Game.play(pet);
       if (!r.ok) { setPose($("#heroPet"), "sad", 2500); bump($("#heroPet"), "shake"); say(r.text); toast(r.text, "!"); return; }
-      setPose($("#heroPet"), "play", 4500);
-      $("#heroPet").scrollIntoView({ behavior: "smooth", block: "center" });
-      say("Ля-ля-ля! Обожаю перерывы под музыку.");
       toast(r.text, "♪");
-      refresh();
+      go("#/rest");
     };
     $("#actSleep").onclick = () => {
+      if (Game.restState(pet)) { go("#/rest"); return; }
       const r = Game.sleep(pet);
       if (!r.ok) { say(r.text); toast(r.text, "!"); return; }
-      setPose($("#heroPet"), "sleep", 5000);
-      $("#heroPet").scrollIntoView({ behavior: "smooth", block: "center" });
-      say("Zzz… ещё пять минуточек…");
       toast(r.text, "☾");
-      refresh();
+      go("#/rest");
     };
+    const rs = Game.restState(pet);
+    if (rs) {
+      const sl = rs.kind === "sleep";
+      $("#mood").textContent = sl ? "Zzz… (питомец спит, учёба закрыта)" : "У меня перерыв! Скоро вернусь к учёбе.";
+      const btn = $(sl ? "#actSleep" : "#actPlay");
+      btn.innerHTML = sl ? "Сон идёт · открыть" : "Перерыв идёт · открыть";
+      $$('a[href="#/learn"]', view).forEach((a) => { a.classList.add("locked"); a.title = sl ? "Питомец спит" : "Идёт перерыв"; });
+    }
     $("#heroPet").onclick = () => {
       setPose($("#heroPet"), "happy", 2200);
       bump($("#heroPet"), "jump");
@@ -1186,7 +1190,7 @@
   const wordCount = (t) => (t.trim().match(/[A-Za-zА-Яа-яЁё0-9'’-]+/g) || []).length;
   const mmss = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 
-  let ielts = { tab: "listening", part: 1, p1: 0, p2: 0, q: 0, wkind: "t2", widx: 0, lpart: 1, lrate: 1, rpass: 1, mkind: "writing" };
+  let ielts = { tab: "listening", part: 1, p1: 0, p2: 0, q: 0, wkind: "t2", widx: 0, lpart: 1, lrate: 1, laccent: "", rpass: 1, mkind: "writing" };
   ielts.p1 = rndIdx(IELTS.PART1);
   ielts.p2 = rndIdx(IELTS.PART2);
   ielts.widx = rndIdx(IELTS.TASK2);
@@ -1353,43 +1357,37 @@
   }
   const bestLR = (id) => ((ieltsData().lr || {})[id]);
 
-  // ---------- Listening: текст озвучивает браузер ----------
-  const FEMALE = /female|zira|hazel|susan|libby|sonia|serena|samantha|karen|moira|tessa|kate|fiona|victoria|emma|amy|olivia|natasha|aria|jenny|sara|martha|catherine/i;
-  const MALE = /(^|\W)male|david|george|ryan|daniel|arthur|oliver|thomas|mark|guy|alex|fred|james|william|brian|eric|christopher|liam|rishi/i;
-  function pickVoices() {
-    const all = speechSynthesis.getVoices().filter((v) => /^en[-_]/i.test(v.lang));
-    const pref = (re) => all.filter((v) => re.test(v.name)).sort((a, b) => (/GB/i.test(b.lang) - /GB/i.test(a.lang)));
-    const f = pref(FEMALE), m = pref(MALE).filter((v) => !FEMALE.test(v.name));
-    const any = all.sort((a, b) => (/GB/i.test(b.lang) - /GB/i.test(a.lang)));
+  // ---------- Listening ----------
+  // Если для части есть готовые аудиофайлы (IELTS_LR.AUDIO), играем их в обычном плеере.
+  // Иначе текст озвучивает браузер — по предложениям, чтобы пауза и бегунок работали.
+  const FEMALE = /female|zira|hazel|susan|libby|sonia|serena|samantha|karen|moira|tessa|kate|fiona|victoria|emma|amy|olivia|natasha|aria|jenny|sara|martha|catherine|ava|michelle|ana|clara|molly|maisie|abbi|bella|hollie/i;
+  const MALE = /(^|\W)male|david|george|ryan|daniel|arthur|oliver|thomas|mark|guy|alex|fred|james|william|brian|eric|christopher|liam|rishi|andrew|roger|steffan|ethan|noah|elliot|alfie/i;
+  const ACCENT = { GB: "британский", AU: "австралийский", US: "американский", CA: "канадский", IE: "ирландский", NZ: "новозеландский", IN: "индийский", ZA: "южноафриканский" };
+  const accentOf = (v) => ACCENT[(v.lang.split(/[-_]/)[1] || "").toUpperCase()] || v.lang;
+  /** Насколько голос живой: «Natural»/«Online» (Edge) и Google звучат намного лучше старых системных. */
+  const voiceScore = (v) => (/natural|neural/i.test(v.name) ? 40 : 0) + (/online/i.test(v.name) ? 20 : 0) + (/google/i.test(v.name) ? 15 : 0) + (/GB/i.test(v.lang) ? 5 : 0) - (v.localService ? 2 : 0);
+  const enVoices = () => ("speechSynthesis" in window ? speechSynthesis.getVoices() : []).filter((v) => /^en[-_]/i.test(v.lang)).sort((a, b) => voiceScore(b) - voiceScore(a));
+
+  /** Голоса для ролей. accent — код страны ("GB", "AU", …) или "" (лучшие голоса любого акцента). */
+  function pickVoices(accent) {
+    let all = enVoices();
+    if (accent) { const a = all.filter((v) => (v.lang.split(/[-_]/)[1] || "").toUpperCase() === accent); if (a.length) all = a; }
+    const f = all.filter((v) => FEMALE.test(v.name)), m = all.filter((v) => MALE.test(v.name) && !FEMALE.test(v.name));
     return {
-      female: { v: f[0] || any[0], pitch: f[0] ? 1 : 1.25 },
-      female2: { v: f[1] || f[0] || any[1] || any[0], pitch: f[1] ? 1 : 1.4 },
-      male: { v: m[0] || any[1] || any[0], pitch: m[0] ? 1 : 0.75 },
+      female: { v: f[0] || all[0], pitch: f[0] ? 1 : 1.2 },
+      female2: { v: f[1] || f[0] || all[1] || all[0], pitch: f[1] ? 1 : 1.35 },
+      male: { v: m[0] || all[1] || all[0], pitch: m[0] ? 1 : 0.8 },
     };
   }
 
-  let lrPlaying = false;
-  function stopSpeech() { lrPlaying = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
-
-  function playScript(test, rate, onEnd) {
-    stopSpeech();
-    const voices = pickVoices();
-    const lines = [];
-    test.script.forEach(([who, text]) => {
-      // Chrome обрывает длинные фразы, поэтому читаем по предложениям
-      text.split(/(?<=[.!?])\s+/).forEach((t) => lines.push([who, t]));
-    });
-    lrPlaying = true;
-    lines.forEach(([who, t], i) => {
-      const u = new SpeechSynthesisUtterance(t);
-      const kind = voices[test.voices[who]] || voices.female;
-      if (kind.v) { u.voice = kind.v; u.lang = kind.v.lang; } else u.lang = "en-GB";
-      u.pitch = kind.pitch;
-      u.rate = rate;
-      if (i === lines.length - 1) u.onend = () => { if (lrPlaying) { lrPlaying = false; onEnd(); } };
-      speechSynthesis.speak(u);
-    });
+  let lrPlaying = false, lrToken = 0, lrAudio = null;
+  function stopSpeech() {
+    lrPlaying = false; lrToken++;
+    if (window.speechSynthesis) speechSynthesis.cancel();
+    if (lrAudio) { lrAudio.pause(); lrAudio = null; }
   }
+  /** Запись по предложениям: [[роль, предложение], …] */
+  const scriptLines = (test) => test.script.flatMap(([who, text]) => text.split(/(?<=[.!?])\s+/).map((t) => [who, t]));
 
   function listeningView() {
     stopIeltsTimer();
@@ -1397,21 +1395,28 @@
     const box = $("#ieltsMain");
     const t = IELTS_LR.LISTENING[ielts.lpart - 1];
     const best = bestLR(t.id);
+    const files = (IELTS_LR.AUDIO || {})[t.id] || null;     // {"GB": "audio/…mp3", "AU": …}
     const canSpeak = "speechSynthesis" in window;
-    if (canSpeak) speechSynthesis.getVoices();   // Chrome загружает список голосов не сразу — просим заранее
+    if (canSpeak) speechSynthesis.getVoices();               // Chrome загружает голоса не сразу
+    const lines = scriptLines(t);
+
     box.innerHTML = `
       <div class="pills" id="lparts">${IELTS_LR.LISTENING.map((x) => `<button class="pill ${ielts.lpart === x.part ? "sel" : ""}" data-p="${x.part}">Part ${x.part}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
       <div class="q-in" style="margin-top:22px">
         <div class="q-num">Listening · Part ${t.part} · ${esc(t.title)}${best ? ` · лучший результат ${best.ok}/${best.total}` : ""}</div>
         <p class="muted">${esc(t.about)}</p>
       </div>
-      <div class="lr-player">
-        <button class="btn btn-sun" id="lPlay" ${canSpeak ? "" : "disabled"}>▶ Слушать</button>
-        <div class="modes light lr-speed" id="lSpeed">
-          <button data-r="0.85" class="${ielts.lrate === 0.85 ? "sel" : ""}">Медленнее</button>
-          <button data-r="1" class="${ielts.lrate === 1 ? "sel" : ""}">Как на экзамене</button>
+      <div class="card lp">
+        <div class="lp-row">
+          <button class="lp-btn" id="lPlay" aria-label="Слушать" ${files || canSpeak ? "" : "disabled"}>▶</button>
+          <input type="range" class="lp-seek" id="lSeek" min="0" max="${files ? 1000 : lines.length - 1}" value="0" step="1" aria-label="Перемотка">
+          <span class="lp-time" id="lTime"></span>
         </div>
-        <span class="hint" id="lHint">${canSpeak ? "На экзамене запись звучит один раз. Сначала прочитай вопросы, потом нажми «Слушать»." : "Этот браузер не умеет озвучивать текст. Попробуй Chrome, Edge или Safari."}</span>
+        <div class="lp-row lp-opts">
+          <label>Акцент <select id="lAccent"></select></label>
+          <label>Скорость <select id="lRate">${[0.75, 0.85, 1, 1.15].map((r) => `<option value="${r}" ${ielts.lrate === r ? "selected" : ""}>${r === 1 ? "как на экзамене" : r + "×"}</option>`).join("")}</select></label>
+        </div>
+        <p class="hint" id="lHint">${files || canSpeak ? "Сначала прочитай вопросы, потом нажми ▶. Пауза — та же кнопка, бегунок перематывает." : "Этот браузер не умеет озвучивать текст. Попробуй Chrome, Edge или Safari."}</p>
       </div>
       <form id="lrForm" autocomplete="off">${renderGroups(t.groups)}</form>
       <div class="row" style="margin-top:18px">
@@ -1419,25 +1424,102 @@
         <button class="btn btn-ghost" id="lReset">Сбросить</button>
       </div>
       <div id="lrOut"></div>`;
+
     $$("#lparts .pill").forEach((b) => b.onclick = () => { ielts.lpart = +b.dataset.p; listeningView(); });
-    $$("#lSpeed button").forEach((b) => b.onclick = () => { ielts.lrate = +b.dataset.r; $$("#lSpeed button").forEach((x) => x.classList.toggle("sel", x === b)); });
-    const play = $("#lPlay");
-    play.onclick = () => {
-      if (lrPlaying) { stopSpeech(); play.textContent = "▶ Слушать заново"; return; }
-      if (!speechSynthesis.getVoices().some((v) => /^en[-_]/i.test(v.lang))) {
-        $("#lHint").innerHTML = "В этом браузере нет английского голоса для озвучки. Открой сайт в Chrome, Edge или Safari (на телефоне тоже работает).";
-        return;
-      }
-      play.textContent = "■ Остановить";
-      $("#lHint").textContent = "Идёт запись… Отвечай прямо во время прослушивания.";
-      playScript(t, ielts.lrate, () => { play.textContent = "▶ Слушать заново"; $("#lHint").textContent = "Запись закончилась. Проверь, что все ответы вписаны, и нажми «Проверить»."; });
-    };
+    const play = $("#lPlay"), seek = $("#lSeek"), time = $("#lTime"), acc = $("#lAccent"), rateSel = $("#lRate");
+    const setBtn = (on) => { play.textContent = on ? "❚❚" : "▶"; play.setAttribute("aria-label", on ? "Пауза" : "Слушать"); };
+
+    // ----- вариант 1: готовые аудиофайлы -----
+    if (files) {
+      const keys = Object.keys(files);
+      if (!keys.includes(ielts.laccent)) ielts.laccent = keys[0];
+      acc.innerHTML = keys.map((k) => `<option value="${k}" ${k === ielts.laccent ? "selected" : ""}>${ACCENT[k] || k}</option>`).join("");
+      const audio = new Audio(files[ielts.laccent]);
+      audio.preload = "metadata";
+      lrAudio = audio;
+      const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+      const upd = () => {
+        if (audio.duration) { seek.value = Math.round((audio.currentTime / audio.duration) * 1000); time.textContent = `${fmt(audio.currentTime)} / ${fmt(audio.duration)}`; }
+      };
+      audio.playbackRate = ielts.lrate;
+      audio.onloadedmetadata = upd;
+      audio.ontimeupdate = upd;
+      audio.onended = () => { setBtn(false); $("#lHint").textContent = "Запись закончилась. Проверь ответы и нажми «Проверить»."; };
+      audio.onerror = () => { $("#lHint").textContent = "Не получилось загрузить запись. Проверь интернет и попробуй ещё раз."; };
+      play.onclick = () => { if (audio.paused) { audio.play(); setBtn(true); } else { audio.pause(); setBtn(false); } };
+      seek.oninput = () => { if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration; };
+      rateSel.onchange = () => { ielts.lrate = +rateSel.value; audio.playbackRate = ielts.lrate; };
+      acc.onchange = () => {
+        const pos = audio.currentTime, was = !audio.paused;
+        ielts.laccent = acc.value;
+        audio.src = files[acc.value];
+        audio.playbackRate = ielts.lrate;
+        audio.onloadedmetadata = () => { audio.currentTime = Math.min(pos, audio.duration || pos); upd(); if (was) audio.play(); };
+      };
+      time.textContent = "0:00";
+    } else {
+      // ----- вариант 2: озвучка браузером -----
+      let pos = 0;
+      const fillAccents = () => {
+        const have = [...new Set(enVoices().map((v) => (v.lang.split(/[-_]/)[1] || "").toUpperCase()))].filter((k) => ACCENT[k]);
+        if (ielts.laccent && !have.includes(ielts.laccent)) ielts.laccent = "";
+        acc.innerHTML = `<option value="">лучшие голоса</option>` + have.map((k) => `<option value="${k}" ${k === ielts.laccent ? "selected" : ""}>${ACCENT[k]}</option>`).join("");
+      };
+      fillAccents();
+      if (canSpeak) speechSynthesis.onvoiceschanged = fillAccents;
+      cleanup.push(() => { if (canSpeak) speechSynthesis.onvoiceschanged = null; });
+      const show = () => {
+        seek.value = pos;
+        time.textContent = `${Math.min(pos + 1, lines.length)} / ${lines.length}`;
+      };
+      const speakFrom = (i) => {
+        if (window.speechSynthesis) speechSynthesis.cancel();
+        const my = ++lrToken;
+        lrPlaying = true; setBtn(true);
+        const voices = pickVoices(ielts.laccent);
+        const say = (k) => {
+          if (my !== lrToken) return;
+          if (k >= lines.length) {
+            lrPlaying = false; pos = 0; setBtn(false); show();
+            $("#lHint").textContent = "Запись закончилась. Проверь ответы и нажми «Проверить».";
+            return;
+          }
+          pos = k; show();
+          const [who, text] = lines[k];
+          const u = new SpeechSynthesisUtterance(text);
+          const kind = voices[t.voices[who]] || voices.female;
+          if (kind.v) { u.voice = kind.v; u.lang = kind.v.lang; } else u.lang = "en-GB";
+          u.pitch = kind.pitch;
+          u.rate = ielts.lrate;
+          u.onend = () => { if (my === lrToken) setTimeout(() => say(k + 1), lines[k + 1] && lines[k + 1][0] !== who ? 350 : 120); };
+          speechSynthesis.speak(u);
+        };
+        say(i);
+      };
+      play.onclick = () => {
+        if (lrPlaying) { lrToken++; lrPlaying = false; speechSynthesis.cancel(); setBtn(false); return; }   // пауза: запоминаем место
+        if (!enVoices().length) {
+          $("#lHint").innerHTML = "В этом браузере нет английского голоса для озвучки. Открой сайт в Chrome, Edge или Safari (на телефоне тоже работает).";
+          return;
+        }
+        const v = pickVoices(ielts.laccent).female.v;
+        $("#lHint").textContent = v && !/natural|neural|online|google/i.test(v.name)
+          ? "Голос в этом браузере простой и звучит неестественно. Лучше всего звучит в Microsoft Edge (голоса Natural) или Chrome."
+          : "Идёт запись… Отвечай прямо во время прослушивания.";
+        speakFrom(pos);
+      };
+      seek.oninput = () => { pos = +seek.value; show(); if (lrPlaying) speakFrom(pos); };
+      rateSel.onchange = () => { ielts.lrate = +rateSel.value; if (lrPlaying) speakFrom(pos); };
+      acc.onchange = () => { ielts.laccent = acc.value; if (lrPlaying) speakFrom(pos); };
+      show();
+    }
+
     cleanup.push(stopSpeech);
     $("#lrForm").onsubmit = (e) => e.preventDefault();
     $("#lReset").onclick = () => listeningView();
     $("#lCheck").onclick = () => {
-      stopSpeech();
-      play.textContent = "▶ Слушать заново";
+      if (lrAudio) { lrAudio.pause(); } else { lrToken++; lrPlaying = false; if (window.speechSynthesis) speechSynthesis.cancel(); }
+      setBtn(false);
       const { ok, total } = checkGroups(t.groups);
       saveLR(t.id, ok, total);
       $("#lrOut").innerHTML = resultBox(ok, total, `<p class="lr-tip"><b>Совет:</b> ${esc(t.tips)}</p>`) + `
@@ -1851,7 +1933,7 @@
     const sp = Pets.SPECIES[pet.animal];
     const qs = Game.loadQuestions();
     const lines = [
-      `Питомец: ${pet.name} (${sp.title}), уровень ${Game.level(pet)} (${Game.stage(pet)}), сытость ${pet.food}/10, настроение ${pet.fun}/10, энергия ${pet.energy}/10.`,
+      `Питомец-учитель (это ты, не ученик): ${pet.name} (${sp.title}), уровень ${Game.level(pet)} (${Game.stage(pet)}), сытость ${pet.food}/10, настроение ${pet.fun}/10, энергия ${pet.energy}/10.`,
       `Ответы: верных ${pet.correct}, ошибок ${pet.wrong}, лучшая серия ${pet.best_streak}. Сейчас выбрана тема: ${pet.topic} · ${pet.level}.`,
       "Прогресс по секциям (решено/всего):",
     ];
@@ -2173,10 +2255,157 @@
   }
 
   // ============================================================
+  //  Сон (5 минут) и перерыв (2 минуты)
+  // ============================================================
+  const restFmt = (ms) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  const BREAK_IDEAS = [
+    { id: "breath", title: "Подышать", text: "Спокойное дыхание по квадрату: вдох, пауза, выдох." },
+    { id: "stretch", title: "Разминка", text: "Шесть простых движений для шеи, плеч и глаз." },
+    { id: "pairs", title: "Найди пару", text: "Мини-игра: соедини английские слова с переводом." },
+    { id: "pet", title: "Погладить питомца", text: "Нажимай на питомца — ему приятно, а тебе весело." },
+  ];
+  const STRETCH = [
+    ["Плечи", "Подними плечи к ушам, задержи на 3 секунды и опусти. Повтори 5 раз."],
+    ["Шея", "Медленно наклони голову к правому плечу, потом к левому. По 3 раза."],
+    ["Глаза", "Посмотри вдаль, в окно, на 20 секунд. Потом поморгай."],
+    ["Спина", "Сцепи руки в замок и потянись вверх, как будто ты выше на 5 см."],
+    ["Кисти", "Покрути кистями рук в одну и в другую сторону по 10 раз."],
+    ["Вода", "Выпей пару глотков воды. Мозгу нужна вода, чтобы хорошо работать."],
+  ];
+  const PAIR_WORDS = [["apple", "яблоко"], ["window", "окно"], ["tired", "уставший"], ["journey", "поездка"], ["neighbour", "сосед"],
+    ["early", "рано"], ["kitchen", "кухня"], ["borrow", "одалживать"], ["weather", "погода"], ["reliable", "надёжный"], ["achieve", "достигать"], ["despite", "несмотря на"]];
+  let restIdea = "breath";
+
+  /** Каждую секунду: проверяем, не закончился ли отдых. */
+  function restTick() {
+    const st = Game.restState(pet);
+    const chip = $("#restChip");
+    if (chip) {
+      chip.classList.toggle("on", !!st);
+      if (st) chip.querySelector("span").textContent = (st.kind === "sleep" ? "☾ " : "♪ ") + restFmt(st.left);
+    }
+    if (!st) return;
+    if (st.left <= 0) {
+      const r = Game.finishRest(pet);
+      Timer.chime();
+      toast(r.text, r.kind === "sleep" ? "☀" : "♪");
+      if (currentRoute() === "rest") go("#/");
+      else if (currentRoute() === "home") render();
+      else updateHeader(currentRoute());
+      return;
+    }
+    if ($("#restLeft")) {
+      $("#restLeft").textContent = restFmt(st.left);
+      $("#restBar").style.width = st.part * 100 + "%";
+    }
+  }
+  setInterval(restTick, 1000);
+
+  function restPage() {
+    const st = Game.restState(pet);
+    if (!st) { location.replace("#/"); return; }
+    const sleep = st.kind === "sleep";
+    view.innerHTML = `
+      <section class="rest-hero card reveal ${sleep ? "night" : "day"}">
+        <div class="rest-pet">${petBox(sleep ? "sleep" : "play", "", "restPet")}</div>
+        <div class="rest-info">
+          <span class="eyebrow">${sleep ? "Тихий час" : "Перерыв"}</span>
+          <h1>${sleep ? `Тсс… ${esc(pet.name)} спит` : `${esc(pet.name)} отдыхает`}</h1>
+          <p>${sleep ? "Пока питомец спит, раздел «Учёба» закрыт. Когда сон закончится, энергия вырастет на 4. Можно разбудить раньше, но тогда сил прибавится меньше."
+            : "Две минуты отдыха от учёбы. Раздел «Учёба» откроется, когда перерыв закончится. Ниже — чем можно заняться."}</p>
+          <div class="rest-time"><b id="restLeft">${restFmt(st.left)}</b><span>осталось</span></div>
+          <div class="rest-bar"><i id="restBar" style="width:${st.part * 100}%"></i></div>
+          <div class="row">
+            <button class="btn ${sleep ? "btn-sun" : ""}" id="restStop">${sleep ? "Разбудить" : "Закончить перерыв"}</button>
+            <a class="btn btn-ghost" href="#/">На главную</a>
+          </div>
+          ${sleep ? `<p class="muted rest-also">А пока можно: <a href="#/cards">повторить карточки</a>, <a href="#/ielts">позаниматься IELTS</a> или <a href="#/focus">поставить фокус-таймер</a>.</p>` : ""}
+        </div>
+      </section>
+      ${sleep ? "" : `<section class="section">
+        <div class="section-head"><h2>Чем заняться в перерыве?</h2><p>Выбери любое. Это не учёба, а отдых для головы.</p></div>
+        <div class="idea-tabs" id="ideaTabs">${BREAK_IDEAS.map((x) => `<button class="idea ${x.id === restIdea ? "on" : ""}" data-id="${x.id}"><b>${x.title}</b><span>${x.text}</span></button>`).join("")}</div>
+        <div class="card idea-box" id="ideaBox"></div>
+      </section>`}`;
+
+    $("#restStop").onclick = () => {
+      const r = Game.finishRest(pet);
+      if (r) toast(r.text, sleep ? "☀" : "♪");
+      go("#/");
+    };
+    $("#restPet").onclick = () => petLove();
+    if (!sleep) {
+      $$("#ideaTabs .idea").forEach((b) => (b.onclick = () => { restIdea = b.dataset.id; $$("#ideaTabs .idea").forEach((x) => x.classList.toggle("on", x === b)); drawIdea(); }));
+      drawIdea();
+    }
+  }
+
+  function petLove() {
+    const box = $("#restPet");
+    if (!box) return;
+    bump(box, "jump");
+    const h = document.createElement("span");
+    h.className = "love";
+    h.textContent = "♥";
+    h.style.left = 30 + Math.random() * 40 + "%";
+    box.appendChild(h);
+    setTimeout(() => h.remove(), 1200);
+    const c = $("#loveCount");
+    if (c) c.textContent = +c.textContent + 1;
+  }
+
+  function drawIdea() {
+    const box = $("#ideaBox");
+    if (!box) return;
+    clearInterval(box._t);
+    if (restIdea === "breath") {
+      box.innerHTML = `<div class="breath"><div class="breath-ball" id="breathBall"></div><p id="breathTxt">Вдох…</p>
+        <p class="muted">4 секунды вдох · 4 секунды пауза · 4 секунды выдох · 4 секунды пауза</p></div>`;
+      const steps = ["Вдох…", "Задержи дыхание", "Выдох…", "Пауза"];
+      let i = 0;
+      const step = () => { const t = $("#breathTxt"); if (!t) return clearInterval(box._t); t.textContent = steps[i % 4]; $("#breathBall").className = "breath-ball s" + (i % 4); i++; };
+      step();
+      box._t = setInterval(step, 4000);
+    } else if (restIdea === "stretch") {
+      let i = 0;
+      const draw = () => {
+        const [t, d] = STRETCH[i];
+        box.innerHTML = `<div class="stretch"><span class="chip">${i + 1} из ${STRETCH.length}</span><h3>${t}</h3><p>${d}</p>
+          <button class="btn btn-sm" id="stretchNext">${i < STRETCH.length - 1 ? "Готово, дальше" : "Начать сначала"}</button></div>`;
+        $("#stretchNext").onclick = () => { i = (i + 1) % STRETCH.length; draw(); };
+      };
+      draw();
+    } else if (restIdea === "pairs") {
+      const words = PAIR_WORDS.slice().sort(() => Math.random() - 0.5).slice(0, 6);
+      const cards = words.flatMap(([en, ru], k) => [{ k, t: en }, { k, t: ru }]).sort(() => Math.random() - 0.5);
+      box.innerHTML = `<div class="pairs">${cards.map((c, i) => `<button class="pair" data-i="${i}">${esc(c.t)}</button>`).join("")}</div>
+        <p class="muted" id="pairsMsg">Нажми на слово, а потом на его перевод.</p>`;
+      let first = null, found = 0;
+      $$(".pair", box).forEach((b) => (b.onclick = () => {
+        if (b.classList.contains("ok") || b === first) return;
+        if (!first) { first = b; b.classList.add("sel"); return; }
+        const a = cards[first.dataset.i], c = cards[b.dataset.i];
+        if (a.k === c.k) {
+          first.classList.replace("sel", "ok"); b.classList.add("ok"); found++;
+          if (found === words.length) { $("#pairsMsg").innerHTML = `Все пары найдены! <button class="btn btn-sm btn-ghost" id="pairsAgain">Ещё раз</button>`; $("#pairsAgain").onclick = drawIdea; }
+        } else {
+          const f = first; b.classList.add("bad"); f.classList.add("bad");
+          setTimeout(() => { b.classList.remove("bad"); f.classList.remove("bad", "sel"); }, 600);
+        }
+        first = null;
+      }));
+    } else {
+      box.innerHTML = `<div class="stretch"><h3>Погладь питомца</h3><p>Нажимай на ${esc(pet.name)} вверху страницы — будут сердечки.</p>
+        <p class="love-total">♥ <b id="loveCount">0</b></p><button class="btn btn-sm" id="loveBtn">Погладить</button></div>`;
+      $("#loveBtn").onclick = () => { petLove(); $("#restPet").scrollIntoView({ behavior: "smooth", block: "center" }); };
+    }
+  }
+
+  // ============================================================
   //  Переключение страниц
   // ============================================================
-  const ROUTES = { "": home, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
-  const NAV = { "": "home", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
+  const ROUTES = { "": home, rest: restPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
+  const NAV = { "": "home", rest: "rest", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
   const currentRoute = () => NAV[location.hash.replace(/^#\/?/, "")] || "home";
 
   function render() {
@@ -2185,12 +2414,17 @@
     let name = location.hash.replace(/^#\/?/, "");
     if (!(name in ROUTES)) name = "";
     if (!pet && name !== "account") name = "new";
+    if (pet && Game.restState(pet) && Game.restState(pet).left > 0 && (name === "learn" || name === "quiz")) {
+      toast(Game.restState(pet).kind === "sleep" ? `${pet.name} спит. Учёба откроется после сна.` : "Сейчас перерыв. Учёба откроется через пару минут.", "☾");
+      name = "rest";
+    }
     view.className = "";
     void view.offsetWidth;        // перезапуск анимации появления страницы
     view.className = "wrap view";
     ROUTES[name]();
     updateHeader(NAV[name]);
     updateTimerChip();
+    restTick();
     Api.visit(name || "home");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
