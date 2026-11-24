@@ -194,7 +194,7 @@ def admin_stats(user=Depends(admin_user)):
 
 # ---------- сам сайт ----------
 # Отдаём только папки сайта. Папку server/ (там .env с ключом и база) наружу не показываем!
-for folder in ("css", "js", "fonts", "img"):
+for folder in ("css", "js", "fonts", "img", "audio"):
     app.mount(f"/{folder}", StaticFiles(directory=os.path.join(SITE, folder)), name=folder)
 
 

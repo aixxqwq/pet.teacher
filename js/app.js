@@ -1359,7 +1359,7 @@
 
   // ---------- Listening ----------
   // Если для части есть готовые аудиофайлы (IELTS_LR.AUDIO), играем их в обычном плеере.
-  // Иначе текст озвучивает браузер — по предложениям, чтобы пауза и бегунок работали.
+  // Если файлов нет — текст озвучивает браузер — по предложениям, чтобы пауза и бегунок работали.
   const FEMALE = /female|zira|hazel|susan|libby|sonia|serena|samantha|karen|moira|tessa|kate|fiona|victoria|emma|amy|olivia|natasha|aria|jenny|sara|martha|catherine|ava|michelle|ana|clara|molly|maisie|abbi|bella|hollie/i;
   const MALE = /(^|\W)male|david|george|ryan|daniel|arthur|oliver|thomas|mark|guy|alex|fred|james|william|brian|eric|christopher|liam|rishi|andrew|roger|steffan|ethan|noah|elliot|alfie/i;
   const ACCENT = { GB: "британский", AU: "австралийский", US: "американский", CA: "канадский", IE: "ирландский", NZ: "новозеландский", IN: "индийский", ZA: "южноафриканский" };
@@ -1450,11 +1450,11 @@
       seek.oninput = () => { if (audio.duration) audio.currentTime = (seek.value / 1000) * audio.duration; };
       rateSel.onchange = () => { ielts.lrate = +rateSel.value; audio.playbackRate = ielts.lrate; };
       acc.onchange = () => {
-        const pos = audio.currentTime, was = !audio.paused;
+        const frac = audio.duration ? audio.currentTime / audio.duration : 0, was = !audio.paused;
         ielts.laccent = acc.value;
         audio.src = files[acc.value];
         audio.playbackRate = ielts.lrate;
-        audio.onloadedmetadata = () => { audio.currentTime = Math.min(pos, audio.duration || pos); upd(); if (was) audio.play(); };
+        audio.onloadedmetadata = () => { audio.currentTime = frac * (audio.duration || 0); upd(); if (was) audio.play(); };
       };
       time.textContent = "0:00";
     } else {
