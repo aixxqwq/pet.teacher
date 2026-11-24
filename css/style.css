@@ -1114,3 +1114,11 @@ body.zen .focus-side:hover { opacity: 1; }
 .lp-opts select { font: inherit; color: var(--ink); padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
 .lp .hint { margin: 0; }
 .rest-chip { white-space: nowrap; } .rest-chip i { display: none; }
+
+/* ---------- кнопка темы ---------- */
+.theme-btn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 14px; border: 1px solid var(--glass-border); background: var(--glass); color: var(--ink); cursor: pointer; transition: transform .3s var(--ease); }
+.theme-btn:hover { transform: rotate(-15deg); }
+.theme-btn .sun { display: none; }
+@media (max-width: 480px) { .theme-btn { width: 38px; height: 38px; border-radius: 12px; } }
+@media (max-width: 1360px) { .topbar .wrap { gap: 14px; } .nav a { padding: 9px 11px; font-size: 14px; } }
+@media (max-width: 1360px) and (min-width: 761px) { .lvl-chip > :not(.ava) { display: none; } .lvl-chip { padding: 4px; } }

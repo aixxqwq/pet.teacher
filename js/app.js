@@ -2434,6 +2434,11 @@
     else location.hash = hash;
   }
   window.addEventListener("hashchange", render);
+  $("#themeBtn").onclick = () => {
+    const dark = document.documentElement.getAttribute("data-theme") === "dark";
+    window.setTheme(dark ? "light" : "dark");
+    toast(dark ? "Светлая тема" : "Тёмная тема", dark ? "☀" : "☾");
+  };
   render();
   Api.checkServer().then(() => updateHeader(currentRoute()));
 })();
