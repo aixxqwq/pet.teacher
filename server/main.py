@@ -72,7 +72,7 @@ def admin_user(user=Depends(current_user)):
 # ---------- служебное ----------
 @app.get("/api/health")
 def health():
-    return {"ok": True, "ai": tutor.has_key(), "model": tutor.DEEPSEEK_MODEL if tutor.has_key() else None}
+    return {"ok": True, "ai": tutor.has_key()}
 
 
 # ---------- защита от перебора паролей ----------

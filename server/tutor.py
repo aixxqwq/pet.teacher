@@ -22,7 +22,7 @@ def has_key():
 def _call(messages, max_tokens=2000, json_mode=False):
     key = os.getenv("DEEPSEEK_API_KEY")
     if not key:
-        raise TutorError("ИИ-учитель не подключён: добавь DEEPSEEK_API_KEY в файл server/.env и перезапусти сервер.")
+        raise TutorError("ИИ-учитель пока не подключён. Попробуй позже.")   # нет DEEPSEEK_API_KEY в server/.env
     body = {"model": DEEPSEEK_MODEL, "messages": messages, "max_tokens": max_tokens,
             "thinking": {"type": os.getenv("DEEPSEEK_THINKING", "disabled")}}
     if json_mode:
@@ -31,15 +31,17 @@ def _call(messages, max_tokens=2000, json_mode=False):
         r = httpx.post(DEEPSEEK_URL, json=body, timeout=120,
                        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
     except httpx.HTTPError:
-        raise TutorError("Не удалось связаться с DeepSeek. Проверь интернет и попробуй ещё раз.")
+        raise TutorError("ИИ-учитель сейчас недоступен. Попробуй ещё раз через минуту.")
+    if r.status_code >= 400:
+        print(f"[tutor] ошибка ИИ-сервиса: {r.status_code}", flush=True)   # видно в логах Render, ученикам не показываем
     if r.status_code == 401:
-        raise TutorError("DeepSeek не принял ключ. Проверь DEEPSEEK_API_KEY в server/.env.")
+        raise TutorError("ИИ-учитель временно недоступен. Мы уже чиним.")
     if r.status_code == 402:
-        raise TutorError("На балансе DeepSeek закончились деньги. Пополни его на platform.deepseek.com.")
+        raise TutorError("ИИ-учитель временно недоступен. Попробуй позже.")
     if r.status_code == 429:
         raise TutorError("Слишком много запросов. Подожди минуту.")
     if r.status_code >= 400:
-        raise TutorError(f"DeepSeek ответил ошибкой {r.status_code}. Попробуй позже.")
+        raise TutorError("ИИ-учитель временно недоступен. Попробуй позже.")
     data = r.json()
     choice = data["choices"][0]
     text = (choice["message"].get("content") or "").strip()

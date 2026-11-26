@@ -2163,7 +2163,7 @@
       <ol class="steps">
         <li>Открой папку <code>pet-teacher</code> и дважды кликни <code>run.bat</code>.</li>
         <li>Сайт откроется по адресу <code>http://localhost:8000</code> — пользуйся им.</li>
-        <li>Для ИИ-учителя положи ключ DeepSeek в файл <code>server/.env</code> (образец — <code>server/.env.example</code>).</li>
+        <li>Для ИИ-учителя положи ключ ИИ в файл <code>server/.env</code> (образец — <code>server/.env.example</code>).</li>
       </ol>
     </div>`;
   }
@@ -2188,7 +2188,7 @@
           <div class="acc-info"><h3>${esc(a.username)}</h3>
             <p class="muted">Прогресс сохраняется на сервере автоматически каждые 10 секунд.
               ${Api.lastSync() ? `Последняя синхронизация: ${new Date(Api.lastSync()).toLocaleTimeString("ru-RU")}.` : ""}</p>
-            <p class="muted">ИИ-учитель: ${h.ai ? `подключён, сегодня осталось вопросов: <b>${left}</b>` : "ключ DeepSeek ещё не добавлен в server/.env"}</p></div>
+            <p class="muted">ИИ-учитель: ${h.ai ? `подключён, сегодня осталось вопросов: <b>${left}</b>` : "пока не подключён"}</p></div>
           <div class="row">${admin ? `<a class="btn btn-sun" href="#/admin">Статистика сайта</a>` : ""}<button class="btn btn-ghost" id="syncNow">Синхронизировать</button><button class="btn" id="logout">Выйти</button></div>
         </div>
         <details class="card danger-zone"><summary>Удалить аккаунт</summary>
@@ -2310,7 +2310,7 @@
     view.innerHTML = `
       <section class="quiz">
         <div class="quiz-card chat-card">
-          <div class="quiz-top"><span class="chip plum">ИИ-учитель</span><span class="chip" id="aiLeft">DeepSeek</span><span class="sp"></span>
+          <div class="quiz-top"><span class="chip plum">ИИ-учитель</span><span class="chip" id="aiLeft"></span><span class="sp"></span>
             ${chat.length ? `<button class="btn btn-ghost btn-sm" id="clearChat">Новый разговор</button>` : ""}</div>
           <div class="chat" id="chat"></div>
           <form class="chat-input" id="chatForm">
@@ -2329,7 +2329,7 @@
     if (!$("#chat")) return;
     if (!h.ok) { $("#chat").innerHTML = serverMissing("Аккаунты и ИИ-учитель"); disableChat(); return; }
     if (!Api.auth()) { $("#chat").innerHTML = `<div class="empty">Чтобы спрашивать учителя, <a href="#/account" style="color:var(--violet);font-weight:600">войди в аккаунт</a>.</div>`; disableChat(); return; }
-    if (!h.ai) { $("#chat").innerHTML = `<div class="empty">Учитель ещё не подключён: добавь ключ DeepSeek в <code>server/.env</code> и перезапусти <code>run.bat</code>.</div>`; disableChat(); return; }
+    if (!h.ai) { $("#chat").innerHTML = `<div class="empty">Учитель пока не подключён. Загляни позже.</div>`; disableChat(); return; }
     renderChat(chat);
     $("#chatForm").onsubmit = (e) => { e.preventDefault(); sendTutor($("#chatIn").value); };
     $("#chatIn").onkeydown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendTutor($("#chatIn").value); } };
@@ -2395,7 +2395,7 @@
     const h = Api.health() || await Api.checkServer();
     if (!h.ok) { out.innerHTML = serverMissing("Проверка эссе"); return; }
     if (!Api.auth()) { out.innerHTML = `<div class="empty">Чтобы ИИ проверил работу, <a href="#/account" style="color:var(--violet);font-weight:600">войди в аккаунт</a>.</div>`; return; }
-    if (!h.ai) { out.innerHTML = `<div class="empty">Добавь ключ DeepSeek в <code>server/.env</code> и перезапусти <code>run.bat</code>.</div>`; return; }
+    if (!h.ai) { out.innerHTML = `<div class="empty">Проверка ИИ пока не подключена. Загляни позже.</div>`; return; }
     out.innerHTML = `<div class="ai-wait"><span class="msg assistant typing"><span></span><span></span><span></span></span> Экзаменатор читает твою работу… (до минуты)</div>`;
     const prompt = task.chart ? `${task.text}\nДанные графика: ${JSON.stringify(task.chart)}` : task.text;
     try {
@@ -2820,7 +2820,7 @@
         <p>Мы <b>не спрашиваем</b> почту, телефон, настоящее имя и возраст. Данные хранятся в облачной базе PostgreSQL (Neon), соединение защищено (HTTPS).</p>
         <h3>ИИ-учитель</h3>
         <p>Когда ты пишешь учителю или отправляешь эссе на проверку, текст вопроса, эссе и короткая сводка прогресса
-          отправляются нейросети DeepSeek, чтобы она могла ответить. Не пиши учителю личные данные: адрес, телефон, пароли.</p>
+          отправляются внешнему сервису ИИ (нейросети), чтобы он мог ответить. Не пиши учителю личные данные: адрес, телефон, пароли.</p>
         <h3>Защита входа</h3>
         <p>После нескольких неверных паролей вход временно блокируется. Вход в аккаунт автоматически истекает через 60 дней.</p>
         <h3>Удаление</h3>
