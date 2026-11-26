@@ -92,7 +92,7 @@ def light_text(r, g, b):
 
 # Эти блоки и так тёмные (фиолетовое «северное сияние» или градиент) — белый цвет в них правильный.
 ON_DARK = re.compile(r"\.hero|\.page-head|\.side-pet|\.focus-panel|\.flash \.back|\.talk-timer|\.night|\.timer-chip|\.rest-chip"
-                     r"|\.btn-sun|\.chip\.grad|\.tico|\.acc-chip\.reg|\.pick:hover|\.pick\.sel|\.step-n|\.acc-ava|\.float-card|\.modes button\.sel|\.presets|\.focus-pet|\.controls")
+                     r"|\.btn-sun|\.chip\.grad|\.tico|\.acc-chip\.reg|\.pick:hover|\.pick\.sel|\.step-n|\.acc-ava|\.float-card|\.dot\b|\.modes button\.sel|\.presets|\.focus-pet|\.controls")
 
 COLOR = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|rgba?\([^)]*\)|\bwhite\b")
 

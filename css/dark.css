@@ -28,7 +28,6 @@
 :root[data-theme="dark"] .chip.bad { background: #431417; color: #E9AFB2; }
 :root[data-theme="dark"] .input { background: rgba(36, 30, 72, 0.70); }
 :root[data-theme="dark"] .input:focus { background: #221C3B; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.26); }
-:root[data-theme="dark"] .dot { background: rgba(36, 30, 72, 0.55); }
 :root[data-theme="dark"] .stat-ico { box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.80); }
 :root[data-theme="dark"] .segs i { background: rgba(236, 233, 255, 0.08); }
 :root[data-theme="dark"] .action-card:nth-child(1) .art { background: linear-gradient(135deg, #1F1443, #271443); }
