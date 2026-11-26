@@ -132,17 +132,29 @@ def find_user(username):
         return con.execute("SELECT * FROM users WHERE lower(username) = lower(?)", (username,)).fetchone()
 
 
+SESSION_DAYS = 60       # через сколько дней без перевхода сессия истекает
+
+
 def new_session(user_id):
     token = secrets.token_urlsafe(32)
     with connect() as con:
+        con.execute("DELETE FROM sessions WHERE created < ?", (time.time() - SESSION_DAYS * 86400,))   # чистим старые
         con.execute("INSERT INTO sessions (token, user_id, created) VALUES (?, ?, ?)", (token, user_id, time.time()))
     return token
 
 
 def user_by_token(token):
     with connect() as con:
-        return con.execute("SELECT u.id, u.username FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ?",
-                           (token,)).fetchone()
+        return con.execute("SELECT u.id, u.username FROM sessions s JOIN users u ON u.id = s.user_id "
+                           "WHERE s.token = ? AND s.created > ?", (token, time.time() - SESSION_DAYS * 86400)).fetchone()
+
+
+def delete_user(user_id):
+    """Стереть пользователя и всё, что с ним связано."""
+    with connect() as con:
+        for table in ("sessions", "progress", "ai_usage", "activity"):
+            con.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+        con.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
 def delete_session(token):

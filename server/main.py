@@ -15,8 +15,9 @@
 import json
 import os
 import re
+import time
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -74,6 +75,37 @@ def health():
     return {"ok": True, "ai": tutor.has_key(), "model": tutor.DEEPSEEK_MODEL if tutor.has_key() else None}
 
 
+# ---------- защита от перебора паролей ----------
+# Храним в памяти время неудачных попыток. 8 ошибок за 15 минут — вход для этого логина/адреса закрыт на 15 минут.
+FAILS: dict[str, list[float]] = {}
+FAIL_LIMIT, FAIL_WINDOW = 8, 15 * 60
+
+
+def client_ip(request: Request):
+    return (request.headers.get("cf-connecting-ip") or request.headers.get("x-forwarded-for", "").split(",")[0]
+            or (request.client.host if request.client else "?")).strip()
+
+
+def recent(key, window=FAIL_WINDOW):
+    now = time.time()
+    FAILS[key] = [t for t in FAILS.get(key, []) if now - t < window]
+    return FAILS[key]
+
+
+def check_throttle(*keys, limit=FAIL_LIMIT, window=FAIL_WINDOW):
+    for k in keys:
+        if len(recent(k, window)) >= limit:
+            raise HTTPException(429, "Слишком много попыток. Подожди 15 минут и попробуй снова.")
+
+
+def note_fail(*keys):
+    for k in keys:
+        recent(k).append(time.time())
+    if len(FAILS) > 10000:          # чтобы память не росла бесконечно
+        for k in [k for k, v in FAILS.items() if not v]:
+            FAILS.pop(k, None)
+
+
 # ---------- аккаунты ----------
 class Credentials(BaseModel):
     username: str = Field(min_length=3, max_length=24)
@@ -81,20 +113,26 @@ class Credentials(BaseModel):
 
 
 @app.post("/api/register")
-def register(c: Credentials):
+def register(c: Credentials, request: Request):
+    ip = "reg:" + client_ip(request)
+    check_throttle(ip, limit=10, window=3600)     # не больше 10 новых аккаунтов в час с одного адреса
     name = c.username.strip()
     if not re.fullmatch(r"[A-Za-zА-Яа-яЁё0-9_.-]{3,24}", name):
         raise HTTPException(400, "Логин: 3–24 символа, буквы, цифры, точка, _ или -")
     if db.find_user(name):
         raise HTTPException(409, "Такой логин уже занят")
     uid = db.create_user(name, c.password)
+    recent(ip, 3600).append(time.time())
     return {"token": db.new_session(uid), "username": name}
 
 
 @app.post("/api/login")
-def login(c: Credentials):
+def login(c: Credentials, request: Request):
+    keys = ("user:" + c.username.strip().lower(), "ip:" + client_ip(request))
+    check_throttle(*keys)
     user = db.find_user(c.username.strip())
     if not user or not db.check_password(c.password, user["pass_hash"], user["salt"]):
+        note_fail(*keys)
         raise HTTPException(401, "Неверный логин или пароль")
     return {"token": db.new_session(user["id"]), "username": user["username"]}
 
@@ -102,6 +140,22 @@ def login(c: Credentials):
 @app.post("/api/logout")
 def logout(authorization: str = Header(default="")):
     db.delete_session(authorization.removeprefix("Bearer ").strip())
+    return {"ok": True}
+
+
+class DeleteIn(BaseModel):
+    password: str
+
+
+@app.post("/api/account/delete")
+def delete_account(body: DeleteIn, request: Request, user=Depends(current_user)):
+    keys = ("user:" + user["username"].lower(), "ip:" + client_ip(request))
+    check_throttle(*keys)
+    full = db.find_user(user["username"])
+    if not db.check_password(body.password, full["pass_hash"], full["salt"]):
+        note_fail(*keys)
+        raise HTTPException(401, "Неверный пароль")
+    db.delete_user(user["id"])
     return {"ok": True}
 
 

@@ -93,6 +93,13 @@ const Api = (() => {
     Object.keys(snapshot()).forEach((k) => localStorage.removeItem(k));
   }
 
+  /** Удалить аккаунт навсегда (нужен пароль) и стереть данные с этого компьютера. */
+  async function deleteAccount(password) {
+    await req("POST", "/api/account/delete", { password });
+    localStorage.removeItem(KEY);
+    Object.keys(snapshot()).forEach((k) => localStorage.removeItem(k));
+  }
+
   /** Анонимный счётчик открытых разделов (для статистики админа). */
   function visit(route) {
     if (!health || !health.ok) return;
@@ -102,5 +109,5 @@ const Api = (() => {
   setInterval(() => push().catch(() => {}), 10000);
   document.addEventListener("visibilitychange", () => { if (document.hidden) push().catch(() => {}); });
 
-  return { auth, req, checkServer, health: () => health, login, logout, push, visit, lastSync: () => lastSync };
+  return { auth, req, checkServer, health: () => health, login, logout, deleteAccount, push, visit, lastSync: () => lastSync };
 })();

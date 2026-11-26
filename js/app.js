@@ -95,7 +95,7 @@
     $("#nav").style.visibility = pet ? "" : "hidden";
     // полоска сверху на телефоне: название раздела и аватарка питомца
     const cur = $(`#nav a[data-route="${route}"]`);
-    $("#mtopTitle").textContent = cur ? cur.textContent.trim().replace(/\s*\d+$/, "") : ({ account: "Аккаунт", rest: "Отдых", admin: "Админка" }[route] || "Bilim Buddy");
+    $("#mtopTitle").textContent = cur ? cur.textContent.trim().replace(/\s*\d+$/, "") : ({ account: "Аккаунт", rest: "Отдых", admin: "Админка", privacy: "Конфиденциальность" }[route] || "Bilim Buddy");
     $("#mtopPet").innerHTML = pet ? Pets.petSVG(pet.animal, "idle", { fx: false }) : "";
     const acc = $("#accChip");
     if (acc) {
@@ -1899,7 +1899,18 @@
               ${Api.lastSync() ? `Последняя синхронизация: ${new Date(Api.lastSync()).toLocaleTimeString("ru-RU")}.` : ""}</p>
             <p class="muted">ИИ-учитель: ${h.ai ? `подключён, сегодня осталось вопросов: <b>${left}</b>` : "ключ DeepSeek ещё не добавлен в server/.env"}</p></div>
           <div class="row">${admin ? `<a class="btn btn-sun" href="#/admin">Статистика сайта</a>` : ""}<button class="btn btn-ghost" id="syncNow">Синхронизировать</button><button class="btn" id="logout">Выйти</button></div>
-        </div>`;
+        </div>
+        <details class="card danger-zone"><summary>Удалить аккаунт</summary>
+          <p class="muted">Аккаунт и весь прогресс на сервере будут стёрты навсегда. Отменить это нельзя.</p>
+          <form class="row" id="delForm"><input class="input" type="password" id="delPass" placeholder="Пароль для подтверждения" autocomplete="current-password" required>
+            <button class="btn btn-danger">Удалить навсегда</button></form>
+        </details>`;
+      $("#delForm").onsubmit = async (e) => {
+        e.preventDefault();
+        if (!confirm("Точно удалить аккаунт и весь прогресс? Это нельзя отменить.")) return;
+        try { await Api.deleteAccount($("#delPass").value); location.hash = "#/"; location.reload(); }
+        catch (err) { toast(esc(err.message), "!"); }
+      };
       $("#syncNow").onclick = async () => { try { await Api.push(true); toast("Прогресс сохранён на сервере"); accountPage(); } catch (e) { toast(esc(e.message), "!"); } };
       $("#logout").onclick = async () => {
         if (!confirm("Выйти? Прогресс останется в аккаунте, а с этого компьютера будет удалён.")) return;
@@ -2270,6 +2281,37 @@
   }
 
   // ============================================================
+  //  Конфиденциальность: что хранится и куда уходит
+  // ============================================================
+  function privacyPage() {
+    view.innerHTML = `
+      <section class="page-head reveal"><div>
+        <span class="eyebrow" style="--i:0">Конфиденциальность</span>
+        <h1 style="--i:1">Что мы храним</h1>
+        <p style="--i:2">Коротко и честно: какие данные есть у Bilim Buddy, где они лежат и кто их видит.</p>
+      </div></section>
+      <section class="section"><div class="card privacy">
+        <h3>Без аккаунта</h3>
+        <p>Весь прогресс (питомец, ответы, карточки, эссе) хранится только в твоём браузере и никуда не отправляется.
+          Если очистить данные браузера, прогресс пропадёт — поэтому лучше завести аккаунт.</p>
+        <h3>С аккаунтом</h3>
+        <ul>
+          <li><b>Логин и пароль.</b> Пароль хранится не сам, а в виде зашифрованного отпечатка (PBKDF2), узнать его по базе нельзя.</li>
+          <li><b>Прогресс сайта</b> — чтобы он был одинаковым на телефоне и компьютере.</li>
+          <li><b>Счётчики</b>: сколько вопросов задано ИИ за день и в какие дни ты заходил(а). Это нужно для лимитов и календаря.</li>
+        </ul>
+        <p>Мы <b>не спрашиваем</b> почту, телефон, настоящее имя и возраст. Данные хранятся в облачной базе PostgreSQL (Neon), соединение защищено (HTTPS).</p>
+        <h3>ИИ-учитель</h3>
+        <p>Когда ты пишешь учителю или отправляешь эссе на проверку, текст вопроса, эссе и короткая сводка прогресса
+          отправляются нейросети DeepSeek, чтобы она могла ответить. Не пиши учителю личные данные: адрес, телефон, пароли.</p>
+        <h3>Защита входа</h3>
+        <p>После нескольких неверных паролей вход временно блокируется. Вход в аккаунт автоматически истекает через 60 дней.</p>
+        <h3>Удаление</h3>
+        <p>В разделе <a href="#/account">«Аккаунт»</a> есть кнопка «Удалить аккаунт»: аккаунт и весь прогресс на сервере стираются сразу и навсегда.</p>
+      </div></section>`;
+  }
+
+  // ============================================================
   //  Сон (5 минут) и перерыв (2 минуты)
   // ============================================================
   const restFmt = (ms) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
@@ -2419,8 +2461,8 @@
   // ============================================================
   //  Переключение страниц
   // ============================================================
-  const ROUTES = { "": home, rest: restPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
-  const NAV = { "": "home", rest: "rest", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
+  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
+  const NAV = { "": "home", rest: "rest", privacy: "privacy", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
   const currentRoute = () => NAV[location.hash.replace(/^#\/?/, "")] || "home";
 
   function render() {
@@ -2428,7 +2470,7 @@
     cleanup = [];
     let name = location.hash.replace(/^#\/?/, "");
     if (!(name in ROUTES)) name = "";
-    if (!pet && name !== "account") name = "new";
+    if (!pet && name !== "account" && name !== "privacy") name = "new";
     if (pet && Game.restState(pet) && Game.restState(pet).left > 0 && (name === "learn" || name === "quiz")) {
       toast(Game.restState(pet).kind === "sleep" ? `${pet.name} спит. Учёба откроется после сна.` : "Сейчас перерыв. Учёба откроется через пару минут.", "☾");
       name = "rest";

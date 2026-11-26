@@ -128,7 +128,7 @@
 :root[data-theme="dark"] .side-dim { background: rgba(0, 0, 0, .55); }
 :root[data-theme="dark"] .side .nav a.active { background: #ECE9FF; color: #1A1538; }
 :root[data-theme="dark"] .toast { border: 1px solid rgba(255, 255, 255, .12); }
-:root[data-theme="dark"] .btn:not(.btn-white):not(.btn-ghost):not(.btn-line) { --bg: #5B45E0; }
+:root[data-theme="dark"] .btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger) { --bg: #5B45E0; }
 :root[data-theme="dark"] .btn-white { --bg: #2A2352; }
 :root[data-theme="dark"] .btn-ghost { --bg: rgba(42, 35, 82, .6); }
 :root[data-theme="dark"] .btn-ghost:hover { --bg: rgba(56, 47, 108, .85); }

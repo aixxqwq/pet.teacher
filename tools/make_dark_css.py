@@ -47,7 +47,7 @@ MANUAL = f"""
 {P} .side-dim {{ background: rgba(0, 0, 0, .55); }}
 {P} .side .nav a.active {{ background: #ECE9FF; color: #1A1538; }}
 {P} .toast {{ border: 1px solid rgba(255, 255, 255, .12); }}
-{P} .btn:not(.btn-white):not(.btn-ghost):not(.btn-line) {{ --bg: #5B45E0; }}
+{P} .btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger) {{ --bg: #5B45E0; }}
 {P} .btn-white {{ --bg: #2A2352; }}
 {P} .btn-ghost {{ --bg: rgba(42, 35, 82, .6); }}
 {P} .btn-ghost:hover {{ --bg: rgba(56, 47, 108, .85); }}
