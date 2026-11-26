@@ -421,6 +421,8 @@ body.zen .focus-side:hover { opacity: 1; }
 .pet .p-head { transform-box: view-box; transform-origin: 120px 150px; }
 .pet .p-blink { transform-box: fill-box; transform-origin: center; animation: blink 5s infinite; }
 .pet .fx-i, .pet .fx text { transform-box: fill-box; transform-origin: center; }
+/* слеза и крошки уменьшаются/падают от своего места, а не от угла картинки */
+.pet .fx-tear path, .pet .fx-crumbs circle { transform-box: fill-box; transform-origin: center top; }
 
 .pose-idle .p-head { animation: headTilt 7s ease-in-out infinite; }
 .pose-happy .p-all, .pose-proud .p-all { animation: hop 1s var(--ease) infinite; }

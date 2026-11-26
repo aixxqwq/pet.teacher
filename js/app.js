@@ -318,9 +318,6 @@
             <span class="mini-xp"><span id="fcXp" style="width:${(Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100}%"></span></span>
             <span class="muted" id="fcXpText">${Game.xpInLevel(pet)} / ${Game.XP_PER_LEVEL} XP</span></div>
         </div>
-        <span class="dot" style="width:18px;height:18px;left:46%;top:12%"></span>
-        <span class="dot" style="width:10px;height:10px;left:8%;bottom:14%;animation-delay:-2s"></span>
-        <span class="dot" style="width:26px;height:26px;right:6%;top:46%;animation-delay:-4s;opacity:.9"></span>
       </section>
 
       <section class="section reveal" id="planBox">${planCard()}</section>
