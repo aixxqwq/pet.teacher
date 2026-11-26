@@ -388,10 +388,10 @@ def tutor_essay(body: EssayIn, user=Depends(current_user)):
 
 
 class SpeakIn(BaseModel):
-    part: int = Field(ge=1, le=3)
+    part: int = Field(ge=0, le=3)      # 0 — весь Speaking пробного экзамена
     question: str = Field(max_length=2000)
-    transcript: str = Field(min_length=3, max_length=6000)
-    seconds: int = Field(default=0, ge=0, le=900)
+    transcript: str = Field(min_length=3, max_length=12000)
+    seconds: int = Field(default=0, ge=0, le=3600)
     pauses: int = Field(default=0, ge=0, le=500)
 
 

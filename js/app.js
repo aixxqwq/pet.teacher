@@ -1663,10 +1663,10 @@
           <li><b>Listening · ~30 минут.</b> Все 4 части подряд, 40 вопросов. Запись звучит один раз — паузы нет, как на экзамене.</li>
           <li><b>Reading · 60 минут.</b> Три текста, 40 вопросов. Когда время кончится, ответы сдадутся сами.</li>
           <li><b>Writing · 40 минут.</b> Эссе Task 2 (от 250 слов). ИИ-экзаменатор поставит примерный band${Api.auth() ? "" : " (нужно войти в аккаунт)"}.</li>
+          <li><b>Speaking · ~12 минут.</b> Part 1 — 4 вопроса о себе, Part 2 — монолог по карточке, Part 3 — обсуждение. Отвечаешь голосом (или текстом), ИИ оценит беглость, лексику и грамматику.</li>
         </ol>
-        <p class="hint">Speaking в пробный экзамен не входит — тренируй его во вкладке «Speaking». Не закрывай страницу до конца: прогресс экзамена не сохраняется.
-          Нужно около 2 часов и наушники.</p>
-        ${best ? `<p class="muted">Прошлый результат: overall <b>${best.overall}</b> (L ${best.l} · R ${best.r}${best.w ? ` · W ${best.w}` : ""}), ${new Date(best.date).toLocaleDateString("ru-RU")}.</p>` : ""}
+        <p class="hint">Не закрывай страницу до конца: прогресс экзамена не сохраняется. Нужно около 2,5 часов, наушники и микрофон.</p>
+        ${best ? `<p class="muted">Прошлый результат: overall <b>${best.overall}</b> (L ${best.l} · R ${best.r}${best.w ? ` · W ${best.w}` : ""}${best.s ? ` · S ${best.s}` : ""}), ${new Date(best.date).toLocaleDateString("ru-RU")}.</p>` : ""}
         <div class="row" style="margin-top:16px"><button class="btn btn-sun" id="mStart">Начать экзамен <span class="arr">${I.arrow}</span></button></div>`;
       $("#mStart").onclick = () => {
         const acc = ["GB", "AU", "GB", "US"];
@@ -1678,6 +1678,7 @@
     if (mock.stage === "listening") return mockListening(box);
     if (mock.stage === "reading") return mockReading(box);
     if (mock.stage === "writing") return mockWriting(box);
+    if (mock.stage === "speaking") return mockSpeaking(box);
     return mockResult(box);
   }
 
@@ -1763,12 +1764,12 @@
       <div class="cue"><b>${esc(task.type)}</b><p>${esc(task.text)}</p></div>
       <div class="w-bar mock-timer"><span class="chip" id="mT">${mmss(40 * 60)}</span><span class="chip" id="mWc">0 слов</span></div>
       <textarea class="input w-text" id="mText" rows="16" placeholder="Write your essay here...">${esc(mock.text || "")}</textarea>
-      <div class="row" style="margin-top:14px"><button class="btn btn-sun" id="mNext">Сдать экзамен</button></div>`;
+      <div class="row" style="margin-top:14px"><button class="btn btn-sun" id="mNext">Сдать Writing и перейти к Speaking</button></div>`;
     const ta = $("#mText");
     const wc = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; $("#mWc").textContent = `${n} слов`; mock.text = ta.value; return n; };
     ta.oninput = wc; wc();
     let left = mock.wLeft || 40 * 60;
-    const finish = () => { stopIeltsTimer(); mock.stage = "result"; mockView(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    const finish = () => { stopIeltsTimer(); mock.stage = "speaking"; mockView(); window.scrollTo({ top: 0, behavior: "smooth" }); };
     ieltsTimer = setInterval(() => {
       left -= 1;
       mock.wLeft = left;
@@ -1785,10 +1786,105 @@
     };
   }
 
+  /** Записать один устный ответ: голосом (с расшифровкой) или текстом. cb({text, seconds, pauses}). */
+  function captureAnswer(el, cb, maxSec = 0) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const choose = () => {
+      el.innerHTML = `<div class="row">${SR ? `<button class="btn btn-sun" id="cGo">🎙 Ответить голосом</button>` : ""}
+        <button class="btn ${SR ? "btn-ghost" : "btn-sun"}" id="cType">⌨ Написать ответ</button></div>`;
+      if ($("#cGo")) $("#cGo").onclick = listen;
+      $("#cType").onclick = () => review("", 0, 0, true);
+    };
+    const listen = () => {
+      let finalText = "", t0 = Date.now(), last = Date.now(), pauses = 0, active = true, timer = null;
+      el.innerHTML = `<div class="sp-head"><b>🎙 Говори по-английски…</b><span class="muted" id="cTime">0:00</span></div>
+        <div class="sp-live" id="cLive"><span class="muted">Начни говорить — текст появится здесь.</span></div>
+        <div class="row"><button class="btn btn-sun" id="cStop">■ Закончить ответ</button></div>`;
+      const r = new SR();
+      spRec = r;
+      r.lang = ielts.spLang || "en-GB"; r.continuous = true; r.interimResults = true;
+      const stop = () => { active = false; clearInterval(timer); stopRecognition(); review(finalText.trim(), Math.round((Date.now() - t0) / 1000), pauses, false); };
+      r.onresult = (e) => {
+        const now = Date.now();
+        if (now - last > 3000 && finalText) pauses++;
+        last = now;
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript.trim() + " ";
+          else interim += e.results[i][0].transcript;
+        }
+        if ($("#cLive")) $("#cLive").innerHTML = `${esc(finalText)}<span class="muted">${esc(interim)}</span>`;
+      };
+      r.onerror = (e) => {
+        if (e.error === "no-speech" || e.error === "aborted") return;
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Нет доступа к микрофону. Разреши его в настройках браузера.", "!");
+        else toast("Распознавание речи сейчас не работает в этом браузере. Напиши ответ текстом или открой сайт в Chrome.", "!");
+        active = false; clearInterval(timer); stopRecognition(); review(finalText.trim(), Math.round((Date.now() - t0) / 1000), pauses, !finalText.trim());
+      };
+      r.onend = () => { if (active && spRec === r) { try { r.start(); } catch (e) { /* перезапуск */ } } };
+      try { r.start(); } catch (e) { toast("Не получилось включить микрофон", "!"); choose(); return; }
+      timer = setInterval(() => {
+        const t = $("#cTime");
+        if (!t) return clearInterval(timer);
+        const sec = Math.round((Date.now() - t0) / 1000);
+        t.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+        if (maxSec && sec >= maxSec) { Timer.chime(); toast("Время вышло — экзаменатор остановил бы тебя здесь", "!"); stop(); }
+      }, 500);
+      cleanup.push(() => { active = false; clearInterval(timer); stopRecognition(); });
+      $("#cStop").onclick = stop;
+    };
+    const review = (text, seconds, pauses, typed) => {
+      el.innerHTML = `${typed ? `<p class="hint">Напиши ответ так, как сказал(а) бы его вслух.</p>` : `<p class="hint">Проверь, что распознал сайт: поправь слова, которые распознаны неправильно.</p>`}
+        <textarea class="input sp-text" id="cText" rows="5" placeholder="I'd say that…">${esc(text)}</textarea>
+        <div class="row"><button class="btn btn-sun" id="cNext">Ответ готов <span class="arr">${I.arrow}</span></button>${SR ? `<button class="btn btn-ghost" id="cAgain">🎙 Заново</button>` : ""}</div>`;
+      if ($("#cAgain")) $("#cAgain").onclick = listen;
+      $("#cNext").onclick = () => {
+        const t = $("#cText").value.trim();
+        if (!t && !confirm("Ответ пустой. Пропустить этот вопрос?")) return;
+        cb({ text: t, seconds: typed ? 0 : seconds, pauses: typed ? 0 : pauses });
+      };
+    };
+    choose();
+  }
+
+  function mockSpeaking(box) {
+    if (!mock.sp) {
+      const t = IELTS.PART1[Math.floor(Math.random() * IELTS.PART1.length)];
+      const c = IELTS.PART2[Math.floor(Math.random() * IELTS.PART2.length)];
+      mock.sp = { i: 0, answers: [], card: c,
+        steps: t.q.slice(0, 4).map((q) => ({ part: 1, q, label: `Part 1 · ${t.topic}` }))
+          .concat([{ part: 2, q: c.card, say: c.say, label: "Part 2 · карточка" }])
+          .concat(c.part3.slice(0, 3).map((q) => ({ part: 3, q, label: "Part 3 · обсуждение" }))) };
+    }
+    const sp = mock.sp;
+    if (sp.i >= sp.steps.length) { mock.stage = "result"; return mockView(); }
+    const st = sp.steps[sp.i];
+    const next = (ans) => { sp.answers.push({ ...st, ...ans }); sp.i++; mockView(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    box.innerHTML = `
+      <div class="q-num">Пробный экзамен · Speaking · ${sp.i + 1} из ${sp.steps.length}</div>
+      <div class="progress-line"><span style="width:${(sp.i / sp.steps.length) * 100}%"></span></div>
+      <div class="q-in" style="margin-top:18px"><div class="q-num">${esc(st.label)}</div>
+        <h2 class="q-text">${esc(st.q)}</h2>
+        ${st.say ? `<p class="muted" style="margin-bottom:6px">You should say:</p><ul>${st.say.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+        <p class="muted">${st.part === 1 ? "Ответь 2–3 предложениями, примерно 20–30 секунд." : st.part === 2 ? "Минута на подготовку, потом говори до 2 минут. Раскрой все пункты карточки." : "Ответь развёрнуто, 40–60 секунд: мнение, объяснение, пример."}</p></div>
+      ${st.part === 2 ? `<div class="talk-timer" id="talk"><span class="tt-label" id="ttLabel">Подготовка: продумай план</span><span class="tt-time" id="ttTime">01:00</span></div>
+        <textarea class="input notes" id="notes" placeholder="Заметки на время подготовки (ключевые слова)…"></textarea>
+        <div class="row" style="margin-top:12px"><button class="btn btn-sun" id="prepDone">Готов(а) говорить</button></div>` : ""}
+      <div class="sp-ai card" id="mAns"></div>
+      <p class="hint" style="margin-top:12px">Если распознавание путает слова, выбери другой акцент во вкладке «Speaking» или напиши ответ текстом.</p>`;
+    if (st.part !== 2) { captureAnswer($("#mAns"), next); return; }
+    $("#mAns").style.display = "none";
+    let left = 60;
+    const go = () => { stopIeltsTimer(); $("#talk").remove(); $("#prepDone").parentElement.remove(); $("#mAns").style.display = ""; captureAnswer($("#mAns"), next, 120); };
+    ieltsTimer = setInterval(() => { left--; if ($("#ttTime")) $("#ttTime").textContent = mmss(Math.max(0, left)); if (left <= 0) { Timer.chime(); go(); } }, 1000);
+    cleanup.push(stopIeltsTimer);
+    $("#prepDone").onclick = go;
+  }
+
   async function mockResult(box) {
     const L = IELTS_LR.band(mock.l, 40), R = IELTS_LR.band(mock.r, mock.rTotal || 30);
     const show = () => {
-      const bands = [L, R].concat(typeof mock.w === "number" ? [mock.w] : []);
+      const bands = [L, R].concat(typeof mock.w === "number" ? [mock.w] : [], typeof mock.s === "number" ? [mock.s] : []);
       const overall = roundBand(bands.reduce((a, b) => a + b, 0) / bands.length);
       box.innerHTML = `
         <div class="q-num">Пробный экзамен · результат</div>
@@ -1797,8 +1893,9 @@
           <div class="mock-band"><span>Listening</span><b>${Number(L).toFixed(1)}</b><em>${mock.l}/40</em></div>
           <div class="mock-band"><span>Reading</span><b>${Number(R).toFixed(1)}</b><em>${mock.r}/${mock.rTotal || 30}</em></div>
           <div class="mock-band"><span>Writing</span><b>${typeof mock.w === "number" ? mock.w.toFixed(1) : "—"}</b><em>${mock.wNote || ""}</em></div>
+          <div class="mock-band"><span>Speaking</span><b>${typeof mock.s === "number" ? mock.s.toFixed(1) : "—"}</b><em>${mock.sNote || ""}</em></div>
         </div>
-        <p class="hint">Это примерная оценка на заданиях Bilim Buddy, а не официальный результат. Overall посчитан без Speaking.</p>
+        <p class="hint">Это примерная оценка на заданиях Bilim Buddy, а не официальный результат. Speaking оценён по тексту ответов, без произношения.</p>
         <div id="mAi"></div>
         <div class="row" style="margin-top:16px"><button class="btn btn-sun" id="mAgain">Пройти ещё раз</button></div>`;
       $("#mAgain").onclick = () => { mock = null; mockView(); };
@@ -1819,14 +1916,38 @@
         } catch (e) { mock.wNote = "ИИ не ответил"; }
       }
     }
+    if (mock.s === undefined && mock.sp) {
+      mock.s = null;
+      const ans = mock.sp.answers.filter((a) => a.text);
+      const words = ans.reduce((n, a) => n + (a.text.match(/\S+/g) || []).length, 0);
+      if (!Api.auth()) mock.sNote = "войди, чтобы ИИ оценил ответы";
+      else if (words < 20) mock.sNote = "ответы слишком короткие";
+      else {
+        box.innerHTML = `<div class="ai-wait"><span class="msg assistant typing"><span></span><span></span><span></span></span> Экзаменатор оценивает Speaking… (до минуты)</div>`;
+        try {
+          const r = await Api.req("POST", "/api/tutor/speaking", {
+            part: 0,
+            question: mock.sp.steps.map((st, i) => `${i + 1}. Part ${st.part}: ${st.q}`).join("\n"),
+            transcript: mock.sp.answers.map((a, i) => `[${i + 1}. Part ${a.part}] ${a.text || "(no answer)"}`).join("\n"),
+            seconds: mock.sp.answers.reduce((n, a) => n + (a.seconds || 0), 0),
+            pauses: mock.sp.answers.reduce((n, a) => n + (a.pauses || 0), 0),
+          });
+          mock.s = typeof r.overall === "number" ? r.overall : null;
+          mock.sAi = r;
+          mock.sNote = `${words} слов`;
+        } catch (e) { mock.sNote = "ИИ не ответил"; }
+      }
+    }
     const overall = show();
-    if (mock.ai) $("#mAi").innerHTML = `<details class="lr-script"><summary>Разбор эссе от ИИ</summary>
-      ${(mock.ai.criteria || []).map((c) => `<p><b>${esc(c.name)} — ${esc(String(c.band))}.</b> ${esc(c.comment)}</p>`).join("")}
-      ${(mock.ai.improve || []).length ? `<p><b>Что улучшить:</b></p><ul>${mock.ai.improve.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</details>`;
+    const aiBox = (title, r) => `<details class="lr-script"><summary>${title}</summary>
+      ${(r.criteria || []).map((c) => `<p><b>${esc(c.name)} — ${esc(String(c.band))}.</b> ${esc(c.comment)}</p>`).join("")}
+      ${(r.improve || []).length ? `<p><b>Что улучшить:</b></p><ul>${r.improve.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+      ${(r.corrections || []).length ? `<p><b>Исправления:</b></p><ul>${r.corrections.map((c) => `<li><s>${esc(c.wrong)}</s> → <b>${esc(c.right)}</b></li>`).join("")}</ul>` : ""}</details>`;
+    $("#mAi").innerHTML = (mock.ai ? aiBox("Разбор эссе от ИИ", mock.ai) : "") + (mock.sAi ? aiBox("Разбор Speaking от ИИ", mock.sAi) : "");
     if (!mock.saved) {
       mock.saved = true;
       const d = ieltsData();
-      d.mock = { overall: overall.toFixed(1), l: L, r: R, w: typeof mock.w === "number" ? mock.w : null, date: Date.now() };
+      d.mock = { overall: overall.toFixed(1), l: L, r: R, w: typeof mock.w === "number" ? mock.w : null, s: typeof mock.s === "number" ? mock.s : null, date: Date.now() };
       ieltsSave(d);
       pet.xp += 40; pet.coins = (pet.coins || 0) + 20; Game.savePet(pet);
       Game.track({ ielts: 1, xp: 40 });

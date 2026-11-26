@@ -182,6 +182,7 @@ SPEAK_SYSTEM = """Ты — опытный экзаменатор IELTS Speaking.
 - Оцени по трём критериям: Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy. Шаг 0.5, строго, как на экзамене.
 - Учитывай длину ответа для части: Part 1 — 2–4 предложения, Part 2 — до 2 минут монолога, Part 3 — развёрнутые рассуждения.
   Слишком короткий ответ снижает Fluency and Coherence.
+- Если Part: 0 — это весь Speaking пробного экзамена: ответы на Part 1, 2 и 3 подряд. Оцени их вместе, как экзаменатор после всего теста.
 - Темп: 110–160 слов в минуту — естественно; много долгих пауз снижает беглость.
 - Комментарии — по-русски, примеры исправлений и улучшенный ответ — на английском.
 Верни строго JSON:
@@ -205,7 +206,7 @@ def check_speaking(part, question, transcript, seconds, pauses):
     wpm = round(words / seconds * 60) if seconds else 0
     user = (f"Part: {part}\nВопрос/задание:\n{question}\n\n"
             f"Длительность ответа: {seconds} сек, слов: {words}, темп: {wpm} слов/мин, долгих пауз (больше 3 сек): {pauses}\n\n"
-            f"Расшифровка ответа:\n<answer>\n{transcript[:5000]}\n</answer>")
+            f"Расшифровка ответа:\n<answer>\n{transcript[:10000]}\n</answer>")
     raw, tokens = _call([{"role": "system", "content": SPEAK_SYSTEM}, {"role": "user", "content": user}],
                         max_tokens=2500, json_mode=True)
     try:
