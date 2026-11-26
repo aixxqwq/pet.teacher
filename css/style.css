@@ -1250,3 +1250,8 @@ body.no-pet .mtop { justify-content: center; }
 .shop-item.try { outline: 2px dashed var(--violet); }
 .shop-item [data-poor] { opacity: .55; }
 @media (max-width: 760px) { .shop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .shop-item .pet-box { width: 100px; height: 100px; } }
+
+/* ---------- «Почему?» после ошибки ---------- */
+.why { margin-top: 12px; padding: 16px 18px; display: grid; gap: 10px; }
+.why p { margin: 0; }
+.why a { color: var(--violet); text-decoration: underline; }

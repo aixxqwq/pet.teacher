@@ -113,3 +113,56 @@ def check_essay(task_kind, prompt, text):
         return json.loads(raw), tokens
     except json.JSONDecodeError:
         raise TutorError("Учитель ответил в неожиданном формате. Попробуй ещё раз.")
+
+
+# ---------- новые задания и объяснение ошибок ----------
+GEN_SYSTEM = """Ты составляешь учебные тестовые вопросы для школьников и студентов на сайте Bilim Buddy.
+Правила:
+- Вопросы на тему и уровень, которые указаны. Сложность — как в примерах.
+- Формулировка вопроса — по-русски (для английского сам пример/предложение — на английском, как в примерах).
+- У каждого вопроса ровно один правильный ответ и ровно 3 неправильных, правдоподобных, но точно неверных варианта.
+- Варианты короткие (до 60 символов), без букв A/B/C. Правильный ответ не должен повторяться среди неверных.
+- Проверь каждый факт и каждое вычисление. Если сомневаешься в факте — не используй этот вопрос.
+- explain — 1–2 предложения по-русски: почему правильный ответ верный.
+- Не повторяй вопросы из списка «уже есть».
+Верни строго JSON: {"questions": [{"question": "...", "answer": "...", "wrong": ["...", "...", "..."], "explain": "..."}]}"""
+
+
+def gen_questions(topic, level, count, examples, avoid):
+    ex = "\n".join(f"- {q} → {a}" for q, a in examples[:6])
+    av = "\n".join(f"- {q}" for q in avoid[:80])
+    user = (f"Тема: {topic}\nУровень: {level}\nСколько вопросов: {count}\n\n"
+            f"Примеры вопросов этого уровня (вопрос → ответ):\n{ex or '- (нет примеров)'}\n\n"
+            f"Уже есть (не повторяй):\n{av or '- (ничего)'}")
+    raw, tokens = _call([{"role": "system", "content": GEN_SYSTEM}, {"role": "user", "content": user}],
+                        max_tokens=3500, json_mode=True)
+    try:
+        items = json.loads(raw).get("questions", [])
+    except (json.JSONDecodeError, AttributeError):
+        raise TutorError("ИИ ответил в неожиданном формате. Попробуй ещё раз.")
+    out, seen = [], {a.strip().lower() for a in avoid}
+    for it in items:
+        try:
+            q, a = str(it["question"]).strip(), str(it["answer"]).strip()
+            wrong = [str(w).strip() for w in it["wrong"]][:3]
+        except (KeyError, TypeError):
+            continue
+        opts = [a] + wrong
+        if (not q or not a or len(wrong) != 3 or len(q) > 300 or any(len(o) > 80 or not o for o in opts)
+                or len({o.lower() for o in opts}) != 4 or q.lower() in seen):
+            continue
+        seen.add(q.lower())
+        out.append({"question": q, "answer": a, "wrong": wrong, "explain": str(it.get("explain", ""))[:400]})
+    if not out:
+        raise TutorError("Не получилось составить вопросы. Попробуй ещё раз.")
+    return out[:count], tokens
+
+
+EXPLAIN_SYSTEM = """Ты — добрый учитель. Ученик ошибся в тестовом вопросе. Объясни по-русски, коротко (2–4 предложения):
+почему правильный ответ верный и в чём ошибка выбранного варианта. Дай простой способ запомнить.
+Без приветствий, сразу по делу. Можно **жирный** для главного."""
+
+
+def explain(question, answer, chosen):
+    user = f"Вопрос: {question}\nПравильный ответ: {answer}\nУченик ответил: {chosen or '(не указано)'}"
+    return _call([{"role": "system", "content": EXPLAIN_SYSTEM}, {"role": "user", "content": user}], max_tokens=400)

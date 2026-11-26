@@ -208,6 +208,43 @@ def tutor_chat(body: ChatIn, user=Depends(current_user)):
         raise HTTPException(503, str(e))
 
 
+class GenIn(BaseModel):
+    topic: str = Field(max_length=60)
+    level: str = Field(max_length=40)
+    count: int = Field(default=10, ge=3, le=12)
+    examples: list[list[str]] = []
+    avoid: list[str] = []
+
+
+@app.post("/api/ai/questions")
+def ai_questions(body: GenIn, user=Depends(current_user)):
+    check_ai_limit(user)
+    try:
+        ex = [(str(e[0])[:200], str(e[1])[:80]) for e in body.examples[:6] if len(e) >= 2]
+        qs, tokens = tutor.gen_questions(body.topic, body.level, body.count, ex, [str(a)[:200] for a in body.avoid[:80]])
+        db.ai_count(user["id"], tokens)
+        return {"questions": qs, "ai_left": max(0, AI_DAILY_LIMIT - db.ai_used_today(user["id"]))}
+    except tutor.TutorError as e:
+        raise HTTPException(503, str(e))
+
+
+class ExplainIn(BaseModel):
+    question: str = Field(max_length=400)
+    answer: str = Field(max_length=200)
+    chosen: str = Field(default="", max_length=200)
+
+
+@app.post("/api/ai/explain")
+def ai_explain(body: ExplainIn, user=Depends(current_user)):
+    check_ai_limit(user)
+    try:
+        text, tokens = tutor.explain(body.question, body.answer, body.chosen)
+        db.ai_count(user["id"], tokens)
+        return {"text": text, "ai_left": max(0, AI_DAILY_LIMIT - db.ai_used_today(user["id"]))}
+    except tutor.TutorError as e:
+        raise HTTPException(503, str(e))
+
+
 class EssayIn(BaseModel):
     kind: str
     prompt: str

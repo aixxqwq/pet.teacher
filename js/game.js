@@ -365,7 +365,14 @@ const Game = (() => {
 
   // ---------- вопросы ----------
   const loadMyQuestions = () => readJSON(KEY_MY, []);
-  const loadQuestions = () => (window.QUESTIONS || []).concat(loadMyQuestions(), loadMistakes());
+  // вопросы, которые составил ИИ (кнопка «Новые задания от ИИ»): хранятся как обычные, дают опыт
+  const KEY_AIQ = "petTeacher.aiq";
+  const loadAIQuestions = () => readJSON(KEY_AIQ, []);
+  function addAIQuestions(list) {
+    const all = loadAIQuestions().concat(list.map((q) => Object.assign({ ai: true }, q)));
+    writeJSON(KEY_AIQ, all.slice(-600));
+  }
+  const loadQuestions = () => (window.QUESTIONS || []).concat(loadAIQuestions(), loadMyQuestions(), loadMistakes());
 
   function addMyQuestion(topic, question, answerText, wrong) {
     const items = loadMyQuestions();
@@ -489,7 +496,7 @@ const Game = (() => {
 
   // ---------- файл сохранения (.json) ----------
   function exportSave() {
-    return JSON.stringify({ pet: readJSON(KEY_PET, null), myQuestions: loadMyQuestions(), mistakes: loadMistakes(), cards: readJSON("petTeacher.cards", []), ielts: readJSON("petTeacher.ielts", null), stats: allStats() }, null, 2);
+    return JSON.stringify({ pet: readJSON(KEY_PET, null), myQuestions: loadMyQuestions(), mistakes: loadMistakes(), cards: readJSON("petTeacher.cards", []), ielts: readJSON("petTeacher.ielts", null), stats: allStats(), aiq: loadAIQuestions() }, null, 2);
   }
   function importSave(text) {
     const data = JSON.parse(text);   // если файл сломан — будет ошибка, её ловит app.js
@@ -500,6 +507,7 @@ const Game = (() => {
     if (Array.isArray(data.mistakes)) writeJSON(KEY_MISTAKES, data.mistakes);
     if (Array.isArray(data.cards)) writeJSON("petTeacher.cards", data.cards);
     if (data.ielts && typeof data.ielts === "object") writeJSON("petTeacher.ielts", data.ielts);
+    if (Array.isArray(data.aiq)) writeJSON(KEY_AIQ, data.aiq);
   }
 
   return {
@@ -508,7 +516,7 @@ const Game = (() => {
     readJSON, writeJSON, newPet, savePet, loadPet, deleteSave, applyTimePassed,
     level, xpInLevel, stage, mood, feeling, answer, play, sleep, restState, finishRest, REST_MS, focusDone, breakDone, cardReviewed,
     dayStats, allStats, track, activityLevel, isoDay, totalFocusMinutes, addDistraction,
-    loadQuestions, loadMyQuestions, addMyQuestion, deleteMyQuestion,
+    loadQuestions, loadAIQuestions, addAIQuestions, loadMyQuestions, addMyQuestion, deleteMyQuestion,
     allTopics, levelsFor, difficulty, countFor, checkTyped, randomQuestion,
     exportSave, importSave,
   };

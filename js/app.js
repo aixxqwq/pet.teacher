@@ -553,6 +553,7 @@
             <span class="chip plum">${esc(learn.topic)}</span><span class="chip">${esc(learn.level)}</span>
             <span class="chip" id="secProg"></span>
             <span class="sp"></span>
+            ${Game.TOPICS[learn.topic] && learn.level !== Game.TRAINER && learn.level !== Game.ALL ? `<button class="btn btn-ghost btn-sm" id="aiMore" title="ИИ составит 10 новых вопросов этой темы и уровня">✦ Новые от ИИ</button>` : ""}
             <a class="btn btn-ghost btn-sm" href="#/learn">Сменить тему</a>
           </div>
           <div class="progress-line" title="Опыт до следующего уровня"><span id="xpLine"></span></div>
@@ -571,6 +572,7 @@
         </aside>
       </section>`;
     nextQuestion();
+    if ($("#aiMore")) $("#aiMore").onclick = () => moreFromAI($("#aiMore"));
 
     const onKey = (e) => {
       if (e.target.tagName === "INPUT") return;
@@ -623,6 +625,7 @@
       $$(".opt").forEach((b) => b.onclick = () => {
         if (quiz.answered) return;
         const ok = b.dataset.v === q.answer;
+        quiz.chosen = b.dataset.v;
         $$(".opt").forEach((x) => {
           x.disabled = true;
           if (x.dataset.v === q.answer) x.classList.add("right");
@@ -639,6 +642,7 @@
         if (quiz.answered) { nextQuestion(); return; }
         if (!inp.value.trim()) { bump(inp, "wrong"); return; }
         const ok = Game.checkTyped(q, inp.value);
+        quiz.chosen = inp.value.trim();
         inp.classList.add(ok ? "right" : "wrong");
         inp.readOnly = true;
         onAnswer(ok);
@@ -686,15 +690,55 @@
             : q.generated ? `<b>Верно.</b> +3 XP за пример из тренажёра`
             : `<b>Верно.</b> +${res.gained} XP, сытость +3`
           : `<b>Неверно.</b> Правильный ответ: <b>${esc(q.answer)}</b>`}</span>
-        ${ok ? "" : `<button class="btn btn-ghost btn-sm" id="askT">Спросить учителя</button>`}
+        ${ok ? "" : `<button class="btn btn-ghost btn-sm" id="whyBtn">Почему?</button>`}
         <button class="btn btn-sm ${ok ? "" : "btn-white"}" id="nextQ">Дальше <span class="arr">${I.arrow}</span></button>
-      </div>`;
+      </div>
+      <div id="whyBox"></div>`;
     $("#nextQ").onclick = nextQuestion;
     $("#nextQ").focus({ preventScroll: true });
-    const askBtn = $("#askT");
-    if (askBtn) askBtn.onclick = () => askTutor(`Объясни, пожалуйста, вопрос: «${q.question}». Правильный ответ — «${q.answer}». Почему именно так? Как это запомнить?`);
+    const whyBtn = $("#whyBtn");
+    if (whyBtn) whyBtn.onclick = () => explainMistake(q, quiz.chosen, whyBtn);
     drawSectionProgress(Game.loadQuestions());
     if (res.sectionDone) sectionComplete(q);
+  }
+
+  /** «Почему?» после ошибки: готовое объяснение (у вопросов от ИИ) или короткий ответ ИИ-учителя. */
+  async function explainMistake(q, chosen, btn) {
+    const box = $("#whyBox");
+    const more = `<button class="btn btn-ghost btn-sm" id="askT">Спросить учителя подробнее</button>`;
+    const show = (html) => {
+      box.innerHTML = `<div class="why card">${html}<div class="row">${more}</div></div>`;
+      $("#askT").onclick = () => askTutor(`Объясни, пожалуйста, вопрос: «${q.question}». Правильный ответ — «${q.answer}». Почему именно так? Как это запомнить?`);
+    };
+    btn.disabled = true;
+    if (q.explain) { show(`<p>${esc(q.explain)}</p>`); return; }
+    if (!Api.auth()) { show(`<p>Объяснения от ИИ доступны после входа в аккаунт. <a href="#/account">Войти</a></p>`); return; }
+    box.innerHTML = `<div class="why card"><p class="muted">Учитель думает…</p></div>`;
+    try {
+      const r = await Api.req("POST", "/api/ai/explain", { question: q.question, answer: q.answer, chosen: chosen || "" });
+      show(md(r.text));
+    } catch (e) { show(`<p>${esc(e.message)}</p>`); btn.disabled = false; }
+  }
+
+  /** «Новые от ИИ»: 10 новых вопросов текущей темы и уровня. */
+  async function moreFromAI(btn) {
+    if (!Api.auth()) { toast("Задания от ИИ доступны после входа в аккаунт", "!"); go("#/account"); return; }
+    const all = Game.loadQuestions().filter((q) => q.topic === learn.topic && q.level === learn.level);
+    btn.disabled = true;
+    btn.textContent = "ИИ составляет вопросы…";
+    try {
+      const r = await Api.req("POST", "/api/ai/questions", {
+        topic: learn.topic, level: learn.level, count: 10,
+        examples: all.filter((q) => !q.ai).slice(0, 6).map((q) => [q.question, q.answer]),
+        avoid: all.map((q) => q.question).slice(-80),
+      });
+      Game.addAIQuestions(r.questions.map((q) => ({ topic: learn.topic, level: learn.level, ...q })));
+      toast(`Добавлено ${r.questions.length} новых вопросов от ИИ`, "✦");
+      drawSectionProgress(Game.loadQuestions());
+      if (quiz && quiz.answered) nextQuestion();
+    } catch (e) { toast(esc(e.message), "!"); }
+    btn.disabled = false;
+    btn.textContent = "✦ Новые от ИИ";
   }
 
   /** Счётчик «решено 12/25» в шапке вопроса. */
@@ -718,8 +762,10 @@
     box.className = "fb good section-done";
     box.innerHTML = `<span class="ic">★</span><span class="sp"><b>Секция пройдена!</b> Все вопросы «${esc(topic)} · ${esc(lvl)}» решены.
         ${next && next !== Game.TRAINER ? `Пора на следующий уровень: <b>${esc(next)}</b>.` : "Это был самый сложный уровень — ты молодец!"}</span>
-      ${next && next !== Game.TRAINER ? `<button class="btn btn-sun btn-sm" id="nextLevel">Уровень ${esc(next)} <span class="arr">${I.arrow}</span></button>` : ""}`;
+      ${next && next !== Game.TRAINER ? `<button class="btn btn-sun btn-sm" id="nextLevel">Уровень ${esc(next)} <span class="arr">${I.arrow}</span></button>` : ""}
+      <button class="btn btn-ghost btn-sm" id="aiMore2">✦ Ещё 10 от ИИ</button>`;
     $("#fb").append(box);
+    $("#aiMore2").onclick = () => moreFromAI($("#aiMore2"));
     const nl = $("#nextLevel");
     if (nl) nl.onclick = () => {
       learn = { topic, level: next };
