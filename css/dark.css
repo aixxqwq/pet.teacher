@@ -111,6 +111,7 @@
 :root[data-theme="dark"] .streak.on b { color: #EBBEAD; }
 :root[data-theme="dark"] .plan-item { background: rgba(36, 30, 72, 0.60); }
 :root[data-theme="dark"] .plan-bar { background: rgba(236, 233, 255, 0.08); }
+:root[data-theme="dark"] .coin-badge { color: #EBD5AD; background: #433614; }
 @media (max-width: 760px) {
   :root[data-theme="dark"] .tabbar { background: rgba(36, 30, 72, 0.78); box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.80); }
   :root[data-theme="dark"] .tabbar a.active { background: #5B45E0; }

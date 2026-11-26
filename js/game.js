@@ -166,6 +166,8 @@ const Game = (() => {
       } else {
         pet.food = limit(pet.food + 3);
         res.gained = 10 + 5 * difficulty;
+        pet.coins = (pet.coins || 0) + 2;          // монетки за новый верный ответ
+        res.coins = 2;
         if (q) {
           markSolved(pet, q);
           const o = origin(q);
@@ -315,6 +317,26 @@ const Game = (() => {
   }
   const todayCounts = () => dayCounts(allStats()[today()]);
   /** Забрать награду за весь план (один раз в день). */
+  // ---------- монеты и магазин ----------
+  function addCoins(pet, n) { pet.coins = (pet.coins || 0) + n; savePet(pet); }
+  function buyItem(pet, id) {
+    const it = Pets.ITEMS[id];
+    pet.owned = pet.owned || [];
+    if (!it || pet.owned.includes(id)) return { ok: false, text: "Уже куплено." };
+    if ((pet.coins || 0) < it.price) return { ok: false, text: `Не хватает монет: нужно ${it.price}, у тебя ${pet.coins || 0}.` };
+    pet.coins -= it.price;
+    pet.owned.push(id);
+    wearItem(pet, id);
+    return { ok: true, text: `Куплено: ${it.title}!` };
+  }
+  function wearItem(pet, id) {
+    const it = Pets.ITEMS[id];
+    pet.wear = pet.wear || {};
+    if (pet.wear[it.slot] === id) delete pet.wear[it.slot];      // повторное нажатие — снять
+    else pet.wear[it.slot] = id;
+    savePet(pet);
+  }
+
   function claimPlan(pet) {
     const s = dayStats();
     if (!planComplete(s) || s.planClaimed) return null;
@@ -482,7 +504,7 @@ const Game = (() => {
 
   return {
     MAX, XP_PER_LEVEL, TOPICS, TOPIC_META, MY_LEVEL, ALL, MISTAKES, TRAINER, sectionProgress,
-    loadMistakes, addMistake, removeMistake, dailyPlan, planComplete, dayStreak, todayCounts, claimPlan, PLAN_REWARD,
+    loadMistakes, addMistake, removeMistake, dailyPlan, planComplete, dayStreak, todayCounts, claimPlan, PLAN_REWARD, addCoins, buyItem, wearItem,
     readJSON, writeJSON, newPet, savePet, loadPet, deleteSave, applyTimePassed,
     level, xpInLevel, stage, mood, feeling, answer, play, sleep, restState, finishRest, REST_MS, focusDone, breakDone, cardReviewed,
     dayStats, allStats, track, activityLevel, isoDay, totalFocusMinutes, addDistraction,

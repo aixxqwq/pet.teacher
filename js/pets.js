@@ -306,6 +306,66 @@
       `<circle cx="${c}" cy="${t - 6}" r="3.3" fill="#FF8FAB"/>`;
   }
 
+  // ---------- магазин: одёжки и украшения ----------
+  // slot: hat — на голову, face — на мордочку, neck — на шею. price — в монетах.
+  const ITEMS = {
+    bow: { slot: "hat", title: "Бантик", price: 40, draw: (sp) => {
+      const x = 120 + sp.headRx * 0.55, y = sp.top + 16;
+      return path(`M${x} ${y}L${x - 26} ${y - 17}L${x - 26} ${y + 17}Z`, "#FF8FAB") + path(`M${x} ${y}L${x + 26} ${y - 17}L${x + 26} ${y + 17}Z`, "#FF8FAB") + circ(x, y, 7.5, "#FFC2D3");
+    } },
+    flower: { slot: "hat", title: "Цветочек", price: 50, draw: (sp) => {
+      const x = 120 - sp.headRx * 0.5, y = sp.top + 14;
+      let p = "";
+      for (let i = 0; i < 5; i++) { const a = (i * 72 - 90) * Math.PI / 180; p += circ(n(x + 13 * Math.cos(a)), n(y + 13 * Math.sin(a)), 10, "#fff"); }
+      return p + circ(x, y, 8.5, "#FFD166");
+    } },
+    beanie: { slot: "hat", title: "Шапочка", price: 70, draw: (sp) => {
+      const c = 120, t = sp.top;
+      return path(`M${c - 54} ${t + 22}C${c - 50} ${t - 26} ${c + 50} ${t - 26} ${c + 54} ${t + 22}Z`, "#8FD3C2") +
+        `<rect x="${c - 58}" y="${t + 14}" width="116" height="14" rx="7" fill="#C9EEE4" ${line}/>` + circ(c, t - 16, 10, "#FFFFFF");
+    } },
+    wizard: { slot: "hat", title: "Шляпа волшебника", price: 150, draw: (sp) => {
+      const c = 120, t = sp.top + 10;
+      return path(`M${c - 50} ${t + 8}L${c + 6} ${t - 70}L${c + 50} ${t + 8}Z`, "#9C88FF") +
+        `<rect x="${c - 62}" y="${t}" width="124" height="14" rx="7" fill="#7B61FF" ${line}/>` +
+        sparkle(c - 6, t - 22, 0.55, "#FFD166") + sparkle(c + 14, t - 44, 0.4, "#FFFFFF");
+    } },
+    crown: { slot: "hat", title: "Корона", price: 250, draw: (sp) => crown(sp) },
+    glasses: { slot: "face", title: "Очки отличника", price: 40, draw: (sp) => glasses(sp) },
+    shades: { slot: "face", title: "Солнечные очки", price: 90, draw: (sp) => {
+      const y = sp.eyeY, c = 120, d = sp.eyeDX;
+      return `<rect x="${c - d - 14}" y="${y - 9}" width="28" height="19" rx="8" fill="#3A2F52" ${line}/>` +
+        `<rect x="${c + d - 14}" y="${y - 9}" width="28" height="19" rx="8" fill="#3A2F52" ${line}/>` +
+        `<path d="M${c - d + 14} ${y - 3}L${c + d - 14} ${y - 3}" stroke="${O}" stroke-width="2.6"/>` +
+        `<path d="M${c - d - 8} ${y - 4}l6 -3" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".7"/>`;
+    } },
+    bowtie: { slot: "neck", title: "Бабочка", price: 50, draw: (sp) => {
+      const y = sp.headCy + sp.headRy - 2, c = 120;
+      return path(`M${c} ${y}L${c - 24} ${y - 14}L${c - 24} ${y + 14}Z`, "#6FA8F5") + path(`M${c} ${y}L${c + 24} ${y - 14}L${c + 24} ${y + 14}Z`, "#6FA8F5") + circ(c, y, 6, "#BCD7FB");
+    } },
+    scarf: { slot: "neck", title: "Шарф", price: 80, draw: (sp) => {
+      const y = sp.headCy + sp.headRy - 8, c = 120;
+      return `<rect x="${c - 46}" y="${y}" width="92" height="15" rx="7.5" fill="#FF8A80" ${line}/>` +
+        `<rect x="${c + 18}" y="${y + 8}" width="15" height="30" rx="6" fill="#FF8A80" ${line} transform="rotate(-12 ${c + 25} ${y + 8})"/>`;
+    } },
+    medal: { slot: "neck", title: "Медаль отличника", price: 120, draw: (sp) => {
+      const y = sp.headCy + sp.headRy - 4, c = 120;
+      return path(`M${c - 12} ${y - 6}L${c - 4} ${y + 12}L${c + 4} ${y + 12}L${c + 12} ${y - 6}`, "#7B61FF") + circ(c, y + 18, 9, "#FFD166") +
+        `<path d="M${c - 3} ${y + 18}l2 2 5 -5" fill="none" stroke="${O}" stroke-width="2"/>`;
+    } },
+  };
+  let WEAR = { animal: null, items: {} };     // что надето на питомца пользователя
+  function setWear(animal, items) { WEAR = { animal, items: items || {} }; }
+  function wearSVG(key, pose, items, sp) {
+    let s = "";
+    const busyHead = ["sleep", "play", "proud"].includes(pose);     // у этих поз своя шапка/наушники/корона
+    const it = (slot) => ITEMS[items[slot]];
+    if (it("neck")) s += it("neck").draw(sp);
+    if (it("face") && pose !== "read" && pose !== "sleep") s += it("face").draw(sp);
+    if (it("hat") && !busyHead) s += it("hat").draw(sp);
+    return s;
+  }
+
   // ---------- лапки и предметы перед тельцем ----------
   // маленькие лапки сложены на животике
   function armsDefault(sp) {
@@ -388,6 +448,9 @@
     if (pose === "play") head += headphones(sp);
     if (pose === "sleep") head += nightcap(sp);
     if (pose === "proud") head += crown(sp);
+    // одёжки из магазина: своему питомцу — то, что надето; opts.wear — для примерки в магазине
+    const items = opts.wear || (opts.wear !== false && WEAR.animal === key ? WEAR.items : null);
+    if (items) head += wearSVG(key, pose, items, sp);
 
     const pillow = pose === "sleep"
       ? `<rect x="32" y="186" width="176" height="40" rx="20" fill="url(#pt-gingham)" ${line}/>`
@@ -420,5 +483,5 @@
     document.body.prepend(div.firstElementChild);
   }
 
-  window.Pets = { SPECIES, petSVG, installDefs };
+  window.Pets = { SPECIES, petSVG, installDefs, ITEMS, setWear };
 })();

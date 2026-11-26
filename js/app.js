@@ -92,10 +92,11 @@
     const dueN = Cards.due().length;   // сколько карточек ждут повторения
     $("#dueBadge").textContent = dueN || "";
     $("#dueBadge").classList.toggle("on", dueN > 0);
+    if ($("#coinBadge")) $("#coinBadge").textContent = pet ? "🪙 " + (pet.coins || 0) : "";
     $("#nav").style.visibility = pet ? "" : "hidden";
     // полоска сверху на телефоне: название раздела и аватарка питомца
     const cur = $(`#nav a[data-route="${route}"]`);
-    $("#mtopTitle").textContent = cur ? cur.textContent.trim().replace(/\s*\d+$/, "") : ({ account: "Аккаунт", rest: "Отдых", admin: "Админка", privacy: "Конфиденциальность" }[route] || "Bilim Buddy");
+    $("#mtopTitle").textContent = cur ? cur.querySelector(".lbl").textContent : ({ account: "Аккаунт", rest: "Отдых", admin: "Админка", privacy: "Конфиденциальность", shop: "Магазин" }[route] || "Bilim Buddy");
     $("#mtopPet").innerHTML = pet ? Pets.petSVG(pet.animal, "idle", { fx: false }) : "";
     const acc = $("#accChip");
     if (acc) {
@@ -1249,15 +1250,20 @@
   /** Опыт за задание — один раз за каждое (как и в обычных вопросах). */
   function ieltsReward(id, xp, text) {
     const d = ieltsData();
-    if (d.done.includes(id)) { toast("Это задание уже засчитано — опыт не начисляется", "✓"); return; }
+    if (d.done.includes(id)) {
+      Game.track({ ielts: 1 });          // повтор тоже считается в план на день, но без опыта
+      toast("Это задание уже засчитано — опыт не начисляется, но в план на день оно идёт", "✓");
+      return;
+    }
     d.done.push(id);
     ieltsSave(d);
     const old = Game.level(pet);
     pet.xp += xp;
+    pet.coins = (pet.coins || 0) + 5;
     pet.fun = Math.min(10, pet.fun + 1);
     Game.savePet(pet);
     Game.track({ ielts: 1, xp });
-    toast(`${text} +${xp} XP`, "★");
+    toast(`${text} +${xp} XP и 5 монет`, "★");
     if (Game.level(pet) > old) { confetti(); toast(`Новый уровень ${Game.level(pet)}!`, "★"); }
     updateHeader("ielts");
   }
@@ -2332,6 +2338,58 @@
   }
 
   // ============================================================
+  //  Магазин: одёжки за монеты
+  // ============================================================
+  const SLOT_NAMES = { hat: "На голову", face: "На мордочку", neck: "На шею" };
+  let tryOn = null;      // что примеряем (ещё не куплено)
+  function shopPage() {
+    const owned = pet.owned || [], wear = pet.wear || {};
+    const preview = Object.assign({}, wear, tryOn ? { [Pets.ITEMS[tryOn].slot]: tryOn } : {});
+    view.innerHTML = `
+      <section class="page-head reveal shop-head"><div>
+        <span class="eyebrow" style="--i:0">Магазин</span>
+        <h1 style="--i:1">Наряди ${esc(pet.name)}</h1>
+        <p style="--i:2">Монеты дают за новые верные ответы (+2), задания IELTS (+5) и выполненный план на день (+20).
+          Нажми на вещь, чтобы примерить.</p>
+        <div class="coins-big" style="--i:3">🪙 <b>${pet.coins || 0}</b> монет</div>
+      </div>
+      <div class="pet-box" id="shopPet">${Pets.petSVG(pet.animal, "happy", { wear: preview })}</div></section>
+      ${Object.entries(SLOT_NAMES).map(([slot, name]) => `
+        <section class="section"><div class="section-head"><h2>${name}</h2></div>
+        <div class="shop-grid">${Object.entries(Pets.ITEMS).filter(([, it]) => it.slot === slot).map(([id, it]) => {
+          const has = owned.includes(id), on = wear[slot] === id;
+          return `<div class="card shop-item ${on ? "on" : ""} ${tryOn === id ? "try" : ""}" data-id="${id}">
+            <div class="pet-box">${Pets.petSVG(pet.animal, "idle", { wear: { [slot]: id }, fx: false })}</div>
+            <h3>${it.title}</h3>
+            ${has ? `<button class="btn btn-sm ${on ? "btn-ghost" : ""}" data-wear="${id}">${on ? "Снять" : "Надеть"}</button>`
+              : `<button class="btn btn-sm btn-sun" data-buy="${id}" ${(pet.coins || 0) < it.price ? "data-poor" : ""}>🪙 ${it.price}</button>`}
+          </div>`; }).join("")}</div></section>`).join("")}`;
+    $$(".shop-item").forEach((c) => c.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      const id = c.dataset.id;
+      tryOn = (pet.owned || []).includes(id) || tryOn === id ? null : id;
+      shopPage();
+      $("#shopPet").scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
+    $$("[data-buy]").forEach((b) => b.onclick = () => {
+      const r = Game.buyItem(pet, b.dataset.buy);
+      if (!r.ok) { toast(r.text, "!"); return; }
+      tryOn = null;
+      Pets.setWear(pet.animal, pet.wear);
+      confetti();
+      toast(r.text, "🪙");
+      shopPage();
+      updateHeader("shop");
+    });
+    $$("[data-wear]").forEach((b) => b.onclick = () => {
+      Game.wearItem(pet, b.dataset.wear);
+      Pets.setWear(pet.animal, pet.wear);
+      shopPage();
+      updateHeader("shop");
+    });
+  }
+
+  // ============================================================
   //  Конфиденциальность: что хранится и куда уходит
   // ============================================================
   function privacyPage() {
@@ -2512,8 +2570,8 @@
   // ============================================================
   //  Переключение страниц
   // ============================================================
-  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
-  const NAV = { "": "home", rest: "rest", privacy: "privacy", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
+  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, shop: shopPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
+  const NAV = { "": "home", rest: "rest", privacy: "privacy", shop: "shop", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
   const currentRoute = () => NAV[location.hash.replace(/^#\/?/, "")] || "home";
 
   function render() {
@@ -2530,6 +2588,8 @@
     void view.offsetWidth;        // перезапуск анимации появления страницы
     view.className = "wrap view";
     document.body.classList.toggle("no-pet", !pet);
+    if (pet) Pets.setWear(pet.animal, pet.wear);
+    if (name !== "shop") tryOn = null;
     ROUTES[name]();
     updateHeader(NAV[name]);
     updateTimerChip();
