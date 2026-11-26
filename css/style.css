@@ -1304,3 +1304,5 @@ body.no-pet .mtop { justify-content: center; }
 .cl-table td { padding: 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .cl-warn { color: var(--bad); }
 .cl-days { font-variant-numeric: tabular-nums; }
+.lang-btn { font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+@media (min-width: 761px) { body.side-mini .side-row .lang-btn { width: 40px; } }

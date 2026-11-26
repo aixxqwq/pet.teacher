@@ -2520,7 +2520,8 @@
             который растёт, когда ты учишься. Пара минут в день — и это входит в привычку.</p>
           ${pet ? "" : `<div class="hero-actions" style="--i:3">
             <a class="btn btn-sun" href="#pickStart" id="landGo">Завести питомца <span class="arr">${I.arrow}</span></a>
-            ${Api.auth() ? "" : `<a class="btn btn-line" href="#/account">У меня есть аккаунт</a>`}</div>`}
+            ${Api.auth() ? "" : `<a class="btn btn-line" href="#/account">У меня есть аккаунт</a>`}
+            <button class="btn btn-line" id="landLang" type="button" data-noi18n>${I18N.lang() === "kk" ? "Русский" : "Қазақша"}</button></div>`}
         </div>
         <div class="pet-box" id="choosePreview">${Pets.petSVG(pick.animal, "happy")}</div>
       </section>
@@ -3010,11 +3011,16 @@
     else location.hash = hash;
   }
   window.addEventListener("hashchange", render);
+  // язык: ҚАЗ / РУС
+  $("#langBtn").textContent = I18N.lang() === "kk" ? "РУС" : "ҚАЗ";
+  $("#langBtn").onclick = () => I18N.set(I18N.lang() === "kk" ? "ru" : "kk");
+  document.addEventListener("click", (e) => { const b = e.target.closest("#landLang"); if (b) I18N.set(I18N.lang() === "kk" ? "ru" : "kk"); });
   $("#themeBtn").onclick = () => {
     const dark = document.documentElement.getAttribute("data-theme") === "dark";
     window.setTheme(dark ? "light" : "dark");
     toast(dark ? "Светлая тема" : "Тёмная тема", dark ? "☀" : "☾");
   };
   render();
+  I18N.start();         // казахский: переводим страницу и всё, что появится потом
   Api.checkServer().then(() => updateHeader(currentRoute()));
 })();
