@@ -1323,9 +1323,8 @@
 
   /** Правая колонка IELTS: критерии и советы для текущей вкладки. */
   function ieltsSide() {
-    const official = `<div class="card white"><b>Официальные пробные тесты</b>
-      <span class="hint">Настоящие задания экзамена секретные. Официальные примеры бесплатно публикуют сами организаторы:</span>
-      <div class="links">${IELTS_LR.OFFICIAL.map((o) => `<a href="${o.url}" target="_blank" rel="noopener">${esc(o.name)} ↗</a>`).join("")}</div></div>`;
+    const official = `<div class="card white"><b>Об этих заданиях</b>
+      <span class="hint">Это тренировочные задания в точном формате IELTS: те же части, типы вопросов и уровень сложности. Настоящие задания экзамена засекречены, поэтому результат здесь — примерный.</span></div>`;
     if (ielts.tab === "mock") return `
           <div class="card white"><b>Советы на экзамен</b>
             <ul class="side-list">

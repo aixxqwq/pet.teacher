@@ -17,11 +17,13 @@ const Api = (() => {
     const a = auth();
     const headers = { "Content-Type": "application/json" };
     if (a) headers.Authorization = "Bearer " + a.token;
+    // ИИ отвечает на языке сайта
+    if (body && /^\/api\/(tutor|ai)\//.test(path) && typeof I18N !== "undefined") body = Object.assign({ lang: I18N.lang() }, body);
     let r;
     try {
       r = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     } catch (e) {
-      throw new Error("Сервер недоступен. Запусти сайт через run.bat.");
+      throw new Error("Нет связи с сервером. Проверь интернет и попробуй ещё раз.");
     }
     let data = {};
     try { data = await r.json(); } catch (e) { /* пустой ответ */ }

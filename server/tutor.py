@@ -2,6 +2,7 @@
 ИИ-учитель: запросы к DeepSeek (как в проекте CQA — обычный HTTP через httpx).
 Ключ берётся из server/.env (DEEPSEEK_API_KEY) и никогда не уходит в браузер.
 """
+import contextvars
 import json
 import os
 
@@ -9,6 +10,16 @@ import httpx
 
 DEEPSEEK_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com") + "/chat/completions"
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-flash")
+
+
+LANG = contextvars.ContextVar("lang", default="ru")     # язык сайта у того, кто спрашивает
+KK_NOTE = ("\n\nВАЖНО: ученик пользуется сайтом на казахском языке. Все твои ответы, комментарии, объяснения и советы "
+           "пиши на казахском языке (қазақ тілінде), грамотно и просто. Английские примеры, исправления и образцы ответов "
+           "оставляй на английском. Названия критериев IELTS оставляй на английском. Ключи JSON не меняй.")
+
+
+def use_lang(lang):
+    LANG.set("kk" if lang == "kk" else "ru")
 
 
 class TutorError(Exception):
@@ -23,6 +34,8 @@ def _call(messages, max_tokens=2000, json_mode=False):
     key = os.getenv("DEEPSEEK_API_KEY")
     if not key:
         raise TutorError("ИИ-учитель пока не подключён. Попробуй позже.")   # нет DEEPSEEK_API_KEY в server/.env
+    if LANG.get() == "kk" and messages and messages[0]["role"] == "system":
+        messages = [dict(messages[0], content=messages[0]["content"] + KK_NOTE)] + messages[1:]
     body = {"model": DEEPSEEK_MODEL, "messages": messages, "max_tokens": max_tokens,
             "thinking": {"type": os.getenv("DEEPSEEK_THINKING", "disabled")}}
     if json_mode:

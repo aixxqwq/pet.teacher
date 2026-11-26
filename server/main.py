@@ -191,6 +191,7 @@ def check_ai_limit(user):
 
 
 class ChatIn(BaseModel):
+    lang: str = Field(default="ru", max_length=5)
     messages: list[dict]
     context: str = ""
     pet_name: str = "Питомец"
@@ -199,6 +200,7 @@ class ChatIn(BaseModel):
 
 @app.post("/api/tutor/chat")
 def tutor_chat(body: ChatIn, user=Depends(current_user)):
+    tutor.use_lang(body.lang)
     check_ai_limit(user)
     try:
         reply, tokens = tutor.chat(body.messages, body.context, body.pet_name[:30], body.species[:30])
@@ -209,6 +211,7 @@ def tutor_chat(body: ChatIn, user=Depends(current_user)):
 
 
 class GenIn(BaseModel):
+    lang: str = Field(default="ru", max_length=5)
     topic: str = Field(max_length=60)
     level: str = Field(max_length=40)
     count: int = Field(default=10, ge=3, le=12)
@@ -218,6 +221,7 @@ class GenIn(BaseModel):
 
 @app.post("/api/ai/questions")
 def ai_questions(body: GenIn, user=Depends(current_user)):
+    tutor.use_lang(body.lang)
     check_ai_limit(user)
     try:
         ex = [(str(e[0])[:200], str(e[1])[:80]) for e in body.examples[:6] if len(e) >= 2]
@@ -229,6 +233,7 @@ def ai_questions(body: GenIn, user=Depends(current_user)):
 
 
 class ExplainIn(BaseModel):
+    lang: str = Field(default="ru", max_length=5)
     question: str = Field(max_length=400)
     answer: str = Field(max_length=200)
     chosen: str = Field(default="", max_length=200)
@@ -236,6 +241,7 @@ class ExplainIn(BaseModel):
 
 @app.post("/api/ai/explain")
 def ai_explain(body: ExplainIn, user=Depends(current_user)):
+    tutor.use_lang(body.lang)
     check_ai_limit(user)
     try:
         text, tokens = tutor.explain(body.question, body.answer, body.chosen)
@@ -371,6 +377,7 @@ def class_board(class_id: int, user=Depends(current_user)):
 
 
 class EssayIn(BaseModel):
+    lang: str = Field(default="ru", max_length=5)
     kind: str
     prompt: str
     text: str = Field(min_length=20)
@@ -378,6 +385,7 @@ class EssayIn(BaseModel):
 
 @app.post("/api/tutor/essay")
 def tutor_essay(body: EssayIn, user=Depends(current_user)):
+    tutor.use_lang(body.lang)
     check_ai_limit(user)
     try:
         result, tokens = tutor.check_essay(body.kind[:60], body.prompt[:2000], body.text)
@@ -388,6 +396,7 @@ def tutor_essay(body: EssayIn, user=Depends(current_user)):
 
 
 class SpeakIn(BaseModel):
+    lang: str = Field(default="ru", max_length=5)
     part: int = Field(ge=0, le=3)      # 0 — весь Speaking пробного экзамена
     question: str = Field(max_length=2000)
     transcript: str = Field(min_length=3, max_length=12000)
@@ -397,6 +406,7 @@ class SpeakIn(BaseModel):
 
 @app.post("/api/tutor/speaking")
 def tutor_speaking(body: SpeakIn, user=Depends(current_user)):
+    tutor.use_lang(body.lang)
     check_ai_limit(user)
     try:
         result, tokens = tutor.check_speaking(body.part, body.question, body.transcript, body.seconds, body.pauses)
