@@ -1255,3 +1255,11 @@ body.no-pet .mtop { justify-content: center; }
 .why { margin-top: 12px; padding: 16px 18px; display: grid; gap: 10px; }
 .why p { margin: 0; }
 .why a { color: var(--violet); text-decoration: underline; }
+
+/* ---------- тест уровня ---------- */
+.test-banner { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 16px 18px; margin-top: 18px; }
+.test-banner > span:nth-child(2) { display: grid; gap: 2px; }
+.test-res { padding: 20px 24px; display: grid; gap: 12px; max-width: 520px; }
+.test-res > div { display: grid; grid-template-columns: 40px 1fr 40px; gap: 12px; align-items: center; }
+.test-res .t-bar { margin: 0; order: 0; width: 100%; }
+@media (max-width: 560px) { .test-banner { grid-template-columns: 44px 1fr; } .test-banner .btn { grid-column: 1 / -1; } }

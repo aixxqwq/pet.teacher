@@ -514,6 +514,12 @@
         }).join("")}
       </div>
 
+      ${learn.topic === "Английский" ? `<a class="card test-banner" href="#/test">
+        <span class="land-ic">A?</span>
+        <span><b>${pet.placement ? `Твой уровень по тесту: ${esc(pet.placement.level)}` : "Не знаешь свой уровень английского?"}</b>
+          <span class="muted">${pet.placement ? "Можно пройти тест ещё раз." : "Пройди тест из 20 вопросов (5–7 минут) — сайт подскажет, с какого уровня начать."}</span></span>
+        <span class="btn btn-sm">${pet.placement ? "Пройти снова" : "Пройти тест"}</span></a>` : ""}
+
       <div class="step"><span class="step-n">02</span><h3>Уровень</h3></div>
       <div class="pills" id="levels">
         ${levels.map((l) => {
@@ -2384,6 +2390,61 @@
   }
 
   // ============================================================
+  //  Тест уровня английского: по 4 вопроса A1…C1
+  // ============================================================
+  const TEST_LEVELS = ["A1", "A2", "B1", "B2", "C1"];
+  let ltest = null;
+  function testPage() {
+    if (!ltest) {
+      const bank = (window.QUESTIONS || []).filter((q) => q.topic === "Английский" && q.wrong.length === 3);
+      const qs = TEST_LEVELS.flatMap((l) => bank.filter((q) => q.level === l).sort(() => Math.random() - 0.5).slice(0, 4));
+      ltest = { qs, i: 0, right: {} };
+    }
+    const t = ltest;
+    if (t.i >= t.qs.length) return testResult();
+    const q = t.qs[t.i];
+    const opts = [q.answer, ...q.wrong].sort(() => Math.random() - 0.5);
+    view.innerHTML = `
+      <section class="quiz"><div class="quiz-card">
+        <div class="quiz-top"><span class="chip plum">Тест уровня</span><span class="chip">${t.i + 1} из ${t.qs.length}</span><span class="sp"></span>
+          <button class="btn btn-ghost btn-sm" id="tSkip">Не знаю</button></div>
+        <div class="progress-line"><span style="width:${(t.i / t.qs.length) * 100}%"></span></div>
+        <div class="q-in"><div class="q-num">Вопросы постепенно усложняются. Если не знаешь — жми «Не знаю», не угадывай.</div>
+          <h2 class="q-text">${esc(q.question)}</h2></div>
+        <div class="opts">${opts.map((o, i) => `<button class="opt" data-v="${esc(o)}"><span class="l">${"ABCD"[i]}</span><span>${esc(o)}</span></button>`).join("")}</div>
+      </div></section>`;
+    const next = (ok) => { if (ok) t.right[q.level] = (t.right[q.level] || 0) + 1; t.i++; testPage(); };
+    $$(".opt").forEach((b) => b.onclick = () => next(b.dataset.v === q.answer));
+    $("#tSkip").onclick = () => next(false);
+  }
+  function testResult() {
+    const t = ltest;
+    // уровень — последний, на котором 3 из 4 верно, и все уровни ниже тоже сданы
+    let level = "A1", passed = 0;
+    for (const l of TEST_LEVELS) { if ((t.right[l] || 0) >= 3) { level = l; passed++; } else break; }
+    const nextL = passed === 0 ? "A1" : TEST_LEVELS[Math.min(passed, TEST_LEVELS.length - 1)];
+    const first = !pet.placement;
+    pet.placement = { level: passed ? level : "ниже A1", date: Date.now(), right: t.right };
+    if (first) pet.coins = (pet.coins || 0) + 10;
+    Game.savePet(pet);
+    view.innerHTML = `
+      <section class="page-head reveal"><div>
+        <span class="eyebrow">Тест уровня</span>
+        <h1>${passed ? `Твой уровень: ${level}` : "Начнём с основ"}</h1>
+        <p>${passed ? `Ты уверенно справляешься с заданиями уровня ${level}. Советую заниматься на уровне <b>${nextL}</b> — там будет чему поучиться.`
+          : "Сейчас лучше всего начать с уровня A1 — там самые базовые слова и грамматика."}${first ? " За первый тест — 10 монет." : ""}</p>
+        <div class="hero-actions" style="margin-top:20px"><button class="btn btn-sun" id="tGo">Учить ${nextL} <span class="arr">${I.arrow}</span></button>
+          <button class="btn btn-line" id="tAgain">Пройти ещё раз</button></div>
+      </div>${petBox(passed >= 3 ? "proud" : "happy")}</section>
+      <section class="section"><div class="card test-res">${TEST_LEVELS.map((l) => `<div><b>${l}</b><span class="t-bar"><span style="width:${((t.right[l] || 0) / 4) * 100}%"></span></span><span class="muted">${t.right[l] || 0}/4</span></div>`).join("")}</div></section>`;
+    if (passed >= 2) confetti();
+    $("#tGo").onclick = () => { learn = { topic: "Английский", level: nextL }; pet.topic = "Английский"; pet.level = nextL; Game.savePet(pet); quiz = null; ltest = null; go("#/quiz"); };
+    $("#tAgain").onclick = () => { ltest = null; testPage(); };
+    ltest = null;
+    updateHeader("learn");
+  }
+
+  // ============================================================
   //  Магазин: одёжки за монеты
   // ============================================================
   const SLOT_NAMES = { hat: "На голову", face: "На мордочку", neck: "На шею" };
@@ -2616,8 +2677,8 @@
   // ============================================================
   //  Переключение страниц
   // ============================================================
-  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, shop: shopPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
-  const NAV = { "": "home", rest: "rest", privacy: "privacy", shop: "shop", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
+  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, shop: shopPage, test: testPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
+  const NAV = { "": "home", rest: "rest", privacy: "privacy", shop: "shop", test: "learn", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
   const currentRoute = () => NAV[location.hash.replace(/^#\/?/, "")] || "home";
 
   function render() {
