@@ -2642,6 +2642,109 @@
   }
 
   // ============================================================
+  //  Классы: ученик вступает по коду, учитель видит прогресс
+  // ============================================================
+  let openClass = null;
+  async function classPage() {
+    view.innerHTML = `
+      <section class="page-head reveal"><div>
+        <span class="eyebrow" style="--i:0">Класс</span>
+        <h1 style="--i:1">Учимся вместе</h1>
+        <p style="--i:2">Учитель создаёт класс и даёт ученикам код. Ученики видят рейтинг недели, а учитель — прогресс каждого.</p>
+      </div>${petBox("happy")}</section>
+      <div id="clBody"><div class="card" style="padding:24px">Загружаю…</div></div>`;
+    const body = $("#clBody");
+    if (!Api.auth()) {
+      body.innerHTML = `<div class="card cl-card"><h3>Нужен аккаунт</h3><p class="muted">Классы работают через сервер, поэтому сначала войди или зарегистрируйся.</p>
+        <a class="btn btn-sun" href="#/account">Войти</a></div>`;
+      return;
+    }
+    let data;
+    try { data = await Api.req("GET", "/api/classes"); } catch (e) { body.innerHTML = `<div class="card cl-card">${esc(e.message)}</div>`; return; }
+    if (!$("#clBody")) return;
+    body.innerHTML = `
+      <section class="section"><div class="section-head"><h2>Я ученик</h2><p>Попроси у учителя код класса из 6 символов.</p></div>
+        <form class="card cl-card cl-form" id="joinForm"><input class="input" id="joinCode" maxlength="10" placeholder="Код класса, например K7PX2M" autocomplete="off" required>
+          <button class="btn btn-sun">Вступить</button></form>
+        <div class="cl-list">${data.joined.map((c) => `<div class="card cl-card" data-board="${c.id}">
+          <div class="cl-row"><div><h3>${esc(c.name)}</h3><span class="muted">Учитель: ${esc(c.teacher)}</span></div>
+            <button class="btn btn-ghost btn-sm" data-leave="${c.id}">Выйти из класса</button></div>
+          <div class="cl-board" id="board${c.id}"><span class="muted">Загружаю рейтинг…</span></div></div>`).join("")}</div>
+      </section>
+      <section class="section"><div class="section-head"><h2>Я учитель</h2><p>Создай класс и раздай ученикам код. Ты будешь видеть их прогресс, серию дней и результаты IELTS.</p></div>
+        <form class="card cl-card cl-form" id="newClass"><input class="input" id="className" maxlength="40" placeholder="Название, например 9 «А» — английский" required>
+          <button class="btn">Создать класс</button></form>
+        <div class="cl-list">${data.teaching.map((c) => `<div class="card cl-card">
+          <div class="cl-row"><div><h3>${esc(c.name)}</h3><span class="muted">Учеников: ${c.count}</span></div>
+            <div class="cl-code" title="Нажми, чтобы скопировать"><span class="muted">код</span><b data-copy="${esc(c.code)}">${esc(c.code)}</b></div>
+            <button class="btn btn-sm ${openClass === c.id ? "btn-ghost" : ""}" data-open="${c.id}">${openClass === c.id ? "Скрыть" : "Ученики"}</button></div>
+          <div id="cl${c.id}"></div></div>`).join("")}</div>
+      </section>`;
+    $("#joinForm").onsubmit = async (e) => {
+      e.preventDefault();
+      try { const r = await Api.req("POST", "/api/classes/join", { code: $("#joinCode").value }); toast(`Ты в классе «${esc(r.name)}»!`, "♥"); classPage(); }
+      catch (err) { toast(esc(err.message), "!"); }
+    };
+    $("#newClass").onsubmit = async (e) => {
+      e.preventDefault();
+      try { const r = await Api.req("POST", "/api/classes", { name: $("#className").value }); openClass = r.id; toast(`Класс создан. Код: ${esc(r.code)}`, "★"); classPage(); }
+      catch (err) { toast(esc(err.message), "!"); }
+    };
+    $$("[data-leave]").forEach((b) => b.onclick = async () => {
+      if (!confirm("Выйти из класса?")) return;
+      await Api.req("POST", `/api/classes/${b.dataset.leave}/leave`); classPage();
+    });
+    $$("[data-copy]").forEach((b) => b.onclick = () => { navigator.clipboard?.writeText(b.dataset.copy); toast("Код скопирован", "✓"); });
+    $$("[data-open]").forEach((b) => b.onclick = () => { openClass = openClass === +b.dataset.open ? null : +b.dataset.open; classPage(); });
+    data.joined.forEach(async (c) => {
+      try {
+        const r = await Api.req("GET", `/api/classes/${c.id}/board`);
+        const el = $(`#board${c.id}`);
+        if (!el) return;
+        el.innerHTML = `<div class="q-num">Рейтинг недели · опыт за 7 дней</div>` + (r.board.map((x, i) => `<div class="cl-rank ${x.me ? "me" : ""}">
+          <span class="cl-pos">${i + 1}</span><span class="cl-ava">${x.animal && Pets.SPECIES[x.animal] ? Pets.petSVG(x.animal, "idle", { fx: false, wear: false }) : ""}</span>
+          <span><b>${esc(x.username)}</b>${x.me ? " (ты)" : ""}<span class="muted">${x.pet ? ` · ${esc(x.pet)}` : ""}${x.streak ? ` · 🔥${x.streak}` : ""}</span></span>
+          <b class="cl-xp">${x.week_xp} XP</b></div>`).join("") || `<span class="muted">Пока никого.</span>`);
+      } catch (e) { /* класс удалён */ }
+    });
+    if (openClass && $(`#cl${openClass}`)) classDetail(openClass);
+  }
+
+  async function classDetail(id) {
+    const box = $(`#cl${id}`);
+    box.innerHTML = `<p class="muted">Загружаю учеников…</p>`;
+    let d;
+    try { d = await Api.req("GET", `/api/classes/${id}`); } catch (e) { box.innerHTML = `<p>${esc(e.message)}</p>`; return; }
+    const ago = (day) => { if (!day) return "давно"; const n = Math.round((new Date(Game.isoDay()) - new Date(day)) / 86400000); return n <= 0 ? "сегодня" : n === 1 ? "вчера" : `${n} дн. назад`; };
+    box.innerHTML = d.students.length ? `
+      <div class="cl-table-wrap"><table class="cl-table">
+        <thead><tr><th>Ученик</th><th>Питомец</th><th>За неделю</th><th>Точность</th><th>Дней из 7</th><th>Серия</th><th>Заходил</th><th>IELTS</th><th>Тест</th><th></th></tr></thead>
+        <tbody>${d.students.sort((a, b) => b.week_xp - a.week_xp).map((s) => `<tr>
+          <td><b>${esc(s.username)}</b></td>
+          <td>${s.pet ? `${esc(s.pet)} · ур. ${s.level}` : "—"}</td>
+          <td>${s.week_xp} XP · ${s.week_answers} отв.</td>
+          <td>${s.week_answers ? Math.round((s.week_correct / s.week_answers) * 100) + "%" : "—"}</td>
+          <td><span class="cl-days">${s.week_days}/7</span></td>
+          <td>${s.streak ? "🔥 " + s.streak : "—"}</td>
+          <td class="${s.last && ago(s.last) !== "сегодня" && ago(s.last) !== "вчера" ? "cl-warn" : ""}">${ago(s.last)}</td>
+          <td>${s.ielts_done} зад.${s.mock ? ` · пробный ${esc(s.mock)}` : ""}</td>
+          <td>${s.placement ? esc(s.placement) : "—"}</td>
+          <td><button class="btn btn-ghost btn-sm" data-rm="${s.id}" title="Убрать из класса">✕</button></td></tr>`).join("")}</tbody>
+      </table></div>
+      <div class="row" style="margin-top:12px"><button class="btn btn-ghost btn-sm" id="delClass${id}">Удалить класс</button></div>`
+      : `<p class="muted">Пока никто не вступил. Дай ученикам код <b>${esc(d.code)}</b> — пусть откроют раздел «Класс» и введут его.</p>
+         <div class="row"><button class="btn btn-ghost btn-sm" id="delClass${id}">Удалить класс</button></div>`;
+    $$("[data-rm]", box).forEach((b) => b.onclick = async () => {
+      if (!confirm("Убрать ученика из класса?")) return;
+      await Api.req("POST", `/api/classes/${id}/remove/${b.dataset.rm}`); classDetail(id);
+    });
+    $(`#delClass${id}`).onclick = async () => {
+      if (!confirm(`Удалить класс «${d.name}»? Ученики останутся, но класс исчезнет.`)) return;
+      await Api.req("POST", `/api/classes/${id}/delete`); openClass = null; classPage();
+    };
+  }
+
+  // ============================================================
   //  Магазин: одёжки за монеты
   // ============================================================
   const SLOT_NAMES = { hat: "На голову", face: "На мордочку", neck: "На шею" };
@@ -2874,8 +2977,8 @@
   // ============================================================
   //  Переключение страниц
   // ============================================================
-  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, shop: shopPage, test: testPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
-  const NAV = { "": "home", rest: "rest", privacy: "privacy", shop: "shop", test: "learn", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
+  const ROUTES = { "": home, rest: restPage, privacy: privacyPage, shop: shopPage, test: testPage, class: classPage, learn: learnPage, quiz: quizPage, cards: cardsPage, review: reviewPage, ielts: ieltsPage, account: accountPage, tutor: tutorPage, admin: adminPage, focus: focusPage, my: myPage, new: choosePage };
+  const NAV = { "": "home", rest: "rest", privacy: "privacy", shop: "shop", test: "learn", class: "class", learn: "learn", quiz: "learn", cards: "cards", review: "cards", ielts: "ielts", account: "account", tutor: "tutor", admin: "admin", focus: "focus", my: "my", new: "" };
   const currentRoute = () => NAV[location.hash.replace(/^#\/?/, "")] || "home";
 
   function render() {

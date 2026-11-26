@@ -245,6 +245,131 @@ def ai_explain(body: ExplainIn, user=Depends(current_user)):
         raise HTTPException(503, str(e))
 
 
+# ---------- классы: учитель видит прогресс учеников ----------
+class ClassIn(BaseModel):
+    name: str = Field(min_length=1, max_length=40)
+
+
+class JoinIn(BaseModel):
+    code: str = Field(min_length=4, max_length=10)
+
+
+def _load(data, key, default):
+    """Прогресс хранится как словарь «ключ localStorage → строка JSON»."""
+    try:
+        v = (data or {}).get(key)
+        return json.loads(v) if isinstance(v, str) else (v if v is not None else default)
+    except (ValueError, TypeError):
+        return default
+
+
+def student_summary(m):
+    data = {}
+    try:
+        data = json.loads(m["data"]) if m["data"] else {}
+    except ValueError:
+        pass
+    pet = _load(data, "petTeacher.pet", {}) or {}
+    stats = _load(data, "petTeacher.stats", {}) or {}
+    ielts = _load(data, "petTeacher.ielts", {}) or {}
+    week = [db.days_ago(i) for i in range(7)]
+    wk = [stats.get(d, {}) for d in week]
+    streak = 0
+    for i in range(0, 365):
+        d = stats.get(db.days_ago(i), {})
+        ok = (d.get("answers", 0) >= 10 or max(d.get("cards", 0), d.get("minutes", 0) // 3) >= 5 or d.get("ielts", 0) >= 1)
+        if ok:
+            streak += 1
+        elif i > 0:
+            break
+    xp = pet.get("xp", 0) or 0
+    return {
+        "id": m["id"], "username": m["username"],
+        "pet": pet.get("name"), "animal": pet.get("animal"), "level": xp // 30 + 1,
+        "week_xp": sum(int(d.get("xp", 0) or 0) for d in wk),
+        "week_answers": sum(int(d.get("answers", 0) or 0) for d in wk),
+        "week_correct": sum(int(d.get("correct", 0) or 0) for d in wk),
+        "week_days": sum(1 for d in week if d in m["days"]),
+        "streak": streak, "last": m["days"][-1] if m["days"] else None,
+        "correct": pet.get("correct", 0), "wrong": pet.get("wrong", 0),
+        "ielts_done": len(ielts.get("done", [])) if isinstance(ielts, dict) else 0,
+        "mock": (ielts.get("mock") or {}).get("overall") if isinstance(ielts, dict) else None,
+        "placement": (pet.get("placement") or {}).get("level"),
+    }
+
+
+@app.get("/api/classes")
+def my_classes(user=Depends(current_user)):
+    return {"teaching": db.teacher_classes(user["id"]), "joined": db.joined_classes(user["id"])}
+
+
+@app.post("/api/classes")
+def new_class(body: ClassIn, user=Depends(current_user)):
+    if len(db.teacher_classes(user["id"])) >= 20:
+        raise HTTPException(400, "Можно создать не больше 20 классов")
+    return db.create_class(user["id"], body.name.strip())
+
+
+@app.post("/api/classes/join")
+def join(body: JoinIn, request: Request, user=Depends(current_user)):
+    keys = ("join:" + str(user["id"]),)
+    check_throttle(*keys)
+    c = db.class_by_code(body.code)
+    if not c:
+        note_fail(*keys)
+        raise HTTPException(404, "Класс с таким кодом не найден. Проверь код у учителя.")
+    if c["teacher_id"] == user["id"]:
+        raise HTTPException(400, "Это твой собственный класс")
+    db.join_class(c["id"], user["id"])
+    return {"id": c["id"], "name": c["name"]}
+
+
+@app.post("/api/classes/{class_id}/leave")
+def leave(class_id: int, user=Depends(current_user)):
+    db.leave_class(class_id, user["id"])
+    return {"ok": True}
+
+
+def own_class(class_id, user):
+    c = db.class_by_id(class_id)
+    if not c or c["teacher_id"] != user["id"]:
+        raise HTTPException(404, "Класс не найден")
+    return c
+
+
+@app.get("/api/classes/{class_id}")
+def class_detail(class_id: int, user=Depends(current_user)):
+    c = own_class(class_id, user)
+    return {"id": c["id"], "name": c["name"], "code": c["code"],
+            "students": [student_summary(m) for m in db.class_members(class_id)]}
+
+
+@app.post("/api/classes/{class_id}/remove/{student_id}")
+def remove_student(class_id: int, student_id: int, user=Depends(current_user)):
+    own_class(class_id, user)
+    db.leave_class(class_id, student_id)
+    return {"ok": True}
+
+
+@app.post("/api/classes/{class_id}/delete")
+def remove_class(class_id: int, user=Depends(current_user)):
+    own_class(class_id, user)
+    db.delete_class(class_id)
+    return {"ok": True}
+
+
+@app.get("/api/classes/{class_id}/board")
+def class_board(class_id: int, user=Depends(current_user)):
+    """Рейтинг недели для учеников класса: только имя, питомец и опыт за неделю."""
+    c = db.class_by_id(class_id)
+    if not c or not (db.is_member(class_id, user["id"]) or c["teacher_id"] == user["id"]):
+        raise HTTPException(404, "Класс не найден")
+    rows = [student_summary(m) for m in db.class_members(class_id)]
+    rows.sort(key=lambda r: -r["week_xp"])
+    return {"name": c["name"], "board": [{"username": r["username"], "pet": r["pet"], "animal": r["animal"],
+                                          "week_xp": r["week_xp"], "streak": r["streak"], "me": r["id"] == user["id"]} for r in rows]}
+
+
 class EssayIn(BaseModel):
     kind: str
     prompt: str

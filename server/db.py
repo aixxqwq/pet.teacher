@@ -93,6 +93,19 @@ def init():
             user_id INTEGER NOT NULL,
             day TEXT NOT NULL,
             PRIMARY KEY (user_id, day)
+        );
+        CREATE TABLE IF NOT EXISTS classes (    -- классы учителей
+            id {auto_id},
+            code TEXT NOT NULL UNIQUE,          -- код, по которому ученики вступают в класс
+            name TEXT NOT NULL,
+            teacher_id INTEGER NOT NULL REFERENCES users(id),
+            created {real} NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS class_members (
+            class_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            joined {real} NOT NULL,
+            PRIMARY KEY (class_id, user_id)
         )"""
     with connect() as con:
         for stmt in schema.split(";"):
@@ -152,8 +165,11 @@ def user_by_token(token):
 def delete_user(user_id):
     """Стереть пользователя и всё, что с ним связано."""
     with connect() as con:
-        for table in ("sessions", "progress", "ai_usage", "activity"):
+        for table in ("sessions", "progress", "ai_usage", "activity", "class_members"):
             con.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+        for row in con.execute("SELECT id FROM classes WHERE teacher_id = ?", (user_id,)).fetchall():
+            con.execute("DELETE FROM class_members WHERE class_id = ?", (row["id"],))
+        con.execute("DELETE FROM classes WHERE teacher_id = ?", (user_id,))
         con.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
@@ -258,3 +274,75 @@ def admin_stats():
                           "days_active": q("SELECT COUNT(*) AS v FROM activity WHERE user_id = ?", u["id"]),
                           "ai": q("SELECT SUM(count) AS v FROM ai_usage WHERE user_id = ?", u["id"]), "pet": pet})
     return {"summary": summary, "daily": daily, "routes": routes, "users": users}
+
+
+# ---------- классы ----------
+CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"     # без похожих символов (0/O, 1/I)
+
+
+def create_class(teacher_id, name):
+    with connect() as con:
+        for _ in range(20):
+            code = "".join(secrets.choice(CODE_ABC) for _ in range(6))
+            if not con.execute("SELECT 1 FROM classes WHERE code = ?", (code,)).fetchone():
+                break
+        row = con.execute("INSERT INTO classes (code, name, teacher_id, created) VALUES (?, ?, ?, ?) RETURNING id",
+                          (code, name, teacher_id, time.time())).fetchone()
+        return {"id": row["id"], "code": code, "name": name}
+
+
+def teacher_classes(teacher_id):
+    with connect() as con:
+        return con.execute("SELECT c.id, c.code, c.name, (SELECT COUNT(*) FROM class_members m WHERE m.class_id = c.id) AS count "
+                           "FROM classes c WHERE c.teacher_id = ? ORDER BY c.created", (teacher_id,)).fetchall()
+
+
+def joined_classes(user_id):
+    with connect() as con:
+        return con.execute("SELECT c.id, c.name, u.username AS teacher FROM class_members m JOIN classes c ON c.id = m.class_id "
+                           "JOIN users u ON u.id = c.teacher_id WHERE m.user_id = ? ORDER BY m.joined", (user_id,)).fetchall()
+
+
+def class_by_code(code):
+    with connect() as con:
+        return con.execute("SELECT * FROM classes WHERE code = ?", (code.strip().upper(),)).fetchone()
+
+
+def class_by_id(class_id):
+    with connect() as con:
+        return con.execute("SELECT * FROM classes WHERE id = ?", (class_id,)).fetchone()
+
+
+def join_class(class_id, user_id):
+    with connect() as con:
+        con.execute("INSERT INTO class_members (class_id, user_id, joined) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+                    (class_id, user_id, time.time()))
+
+
+def leave_class(class_id, user_id):
+    with connect() as con:
+        con.execute("DELETE FROM class_members WHERE class_id = ? AND user_id = ?", (class_id, user_id))
+
+
+def is_member(class_id, user_id):
+    with connect() as con:
+        return bool(con.execute("SELECT 1 FROM class_members WHERE class_id = ? AND user_id = ?", (class_id, user_id)).fetchone())
+
+
+def delete_class(class_id):
+    with connect() as con:
+        con.execute("DELETE FROM class_members WHERE class_id = ?", (class_id,))
+        con.execute("DELETE FROM classes WHERE id = ?", (class_id,))
+
+
+def class_members(class_id):
+    """Ученики класса с их прогрессом (JSON) и днями активности."""
+    with connect() as con:
+        rows = con.execute("SELECT u.id, u.username, p.data FROM class_members m JOIN users u ON u.id = m.user_id "
+                           "LEFT JOIN progress p ON p.user_id = u.id WHERE m.class_id = ? ORDER BY m.joined", (class_id,)).fetchall()
+        out = []
+        for r in rows:
+            days = [a["day"] for a in con.execute("SELECT day FROM activity WHERE user_id = ? AND day >= ? ORDER BY day",
+                                                   (r["id"], days_ago(30))).fetchall()]
+            out.append({"id": r["id"], "username": r["username"], "data": r["data"], "days": days})
+        return out

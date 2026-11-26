@@ -1278,3 +1278,29 @@ body.no-pet .mtop { justify-content: center; }
 .mock-band.big span { color: rgba(255, 255, 255, .85); }
 .mock-band.big b { font-size: 48px; }
 @media (max-width: 760px) { .mock-res { grid-template-columns: repeat(2, 1fr); } .mock-band.big { grid-column: 1 / -1; } }
+
+/* ---------- классы ---------- */
+.cl-card { padding: 18px 20px; display: grid; gap: 12px; }
+.cl-form { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cl-form .input { flex: 1; min-width: 220px; }
+.cl-list { display: grid; gap: 14px; }
+.cl-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.cl-row > div:first-child { flex: 1; min-width: 180px; }
+.cl-row h3 { font-size: 20px; }
+.cl-code { display: grid; text-align: center; cursor: pointer; padding: 6px 14px; border-radius: 14px; background: var(--grad-soft); }
+.cl-code span { font-size: 11px; }
+.cl-code b { font-size: 22px; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.cl-board { display: grid; gap: 6px; }
+.cl-rank { display: grid; grid-template-columns: 26px 36px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 14px; }
+.cl-rank.me { background: rgba(123, 97, 255, .1); }
+.cl-pos { font-weight: 700; color: var(--muted); text-align: center; }
+.cl-rank:nth-child(2) .cl-pos { color: #D4A017; }
+.cl-ava { width: 36px; height: 36px; border-radius: 12px; overflow: hidden; display: grid; place-items: start center; background: var(--grad-soft); }
+.cl-ava svg { width: 54px; height: 54px; flex: none; }
+.cl-xp { white-space: nowrap; }
+.cl-table-wrap { overflow-x: auto; border-radius: 14px; }
+.cl-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 820px; }
+.cl-table th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.cl-table td { padding: 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cl-warn { color: var(--bad); }
+.cl-days { font-variant-numeric: tabular-nums; }
