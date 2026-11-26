@@ -201,4 +201,5 @@ for folder in ("css", "js", "fonts", "img", "audio"):
 @app.get("/")
 @app.get("/index.html")
 def index():
-    return FileResponse(os.path.join(SITE, "index.html"))
+    # no-cache: браузер каждый раз сверяется с сервером, поэтому после обновления сайта сразу видна новая версия
+    return FileResponse(os.path.join(SITE, "index.html"), headers={"Cache-Control": "no-cache"})
