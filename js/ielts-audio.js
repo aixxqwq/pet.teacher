@@ -19,5 +19,15 @@ IELTS_LR.AUDIO = {
     "GB": "audio/ielts/L4-GB.mp3",
     "AU": "audio/ielts/L4-AU.mp3",
     "US": "audio/ielts/L4-US.mp3"
+  },
+  "L5": {
+    "GB": "audio/ielts/L5-GB.mp3",
+    "AU": "audio/ielts/L5-AU.mp3",
+    "US": "audio/ielts/L5-US.mp3"
+  },
+  "L6": {
+    "GB": "audio/ielts/L6-GB.mp3",
+    "AU": "audio/ielts/L6-AU.mp3",
+    "US": "audio/ielts/L6-US.mp3"
   }
 };

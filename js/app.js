@@ -1510,7 +1510,7 @@
     stopIeltsTimer();
     stopSpeech();
     const box = $("#ieltsMain");
-    const t = IELTS_LR.LISTENING[ielts.lpart - 1];
+    const t = IELTS_LR.LISTENING[ielts.lpart - 1] || IELTS_LR.LISTENING[0];
     const best = bestLR(t.id);
     const files = (IELTS_LR.AUDIO || {})[t.id] || null;     // {"GB": "audio/…mp3", "AU": …}
     const canSpeak = "speechSynthesis" in window;
@@ -1518,7 +1518,7 @@
     const lines = scriptLines(t);
 
     box.innerHTML = `
-      <div class="pills" id="lparts">${IELTS_LR.LISTENING.map((x) => `<button class="pill ${ielts.lpart === x.part ? "sel" : ""}" data-p="${x.part}">Part ${x.part}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
+      <div class="pills" id="lparts">${IELTS_LR.LISTENING.map((x, i) => `<button class="pill ${ielts.lpart === i + 1 ? "sel" : ""}" data-p="${i + 1}">${x.set > 1 ? "Ещё · " : ""}Part ${x.part}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
       <div class="q-in" style="margin-top:22px">
         <div class="q-num">Listening · Part ${t.part} · ${esc(t.title)}${best ? ` · лучший результат ${best.ok}/${best.total}` : ""}</div>
         <p class="muted">${esc(t.about)}</p>
@@ -1682,7 +1682,7 @@
   }
 
   function mockListening(box) {
-    const parts = IELTS_LR.LISTENING;
+    const parts = IELTS_LR.LISTENING.filter((t) => !t.set || t.set === 1);
     let start = 0;
     const html = parts.map((t) => { const h = `<h3 class="mock-part">Part ${t.part} · вопросы ${start + 1}–${start + 10}</h3>${renderGroups(t.groups, start)}`; start += 10; return h; }).join("");
     box.innerHTML = `
@@ -1718,7 +1718,7 @@
   }
 
   function mockReading(box) {
-    const ps = IELTS_LR.READING;
+    const ps = IELTS_LR.READING.filter((t) => !t.set || t.set === 1);
     let start = 0;
     const html = ps.map((r, i) => {
       const h = `<h3 class="mock-part">Passage ${i + 1} · вопросы ${start + 1}–${start + 10}</h3>
@@ -1844,7 +1844,7 @@
     const r = IELTS_LR.READING[ielts.rpass - 1];
     const best = bestLR(r.id);
     box.innerHTML = `
-      <div class="pills" id="rparts">${IELTS_LR.READING.map((x, i) => `<button class="pill ${ielts.rpass === i + 1 ? "sel" : ""}" data-p="${i + 1}">Passage ${i + 1}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
+      <div class="pills" id="rparts">${IELTS_LR.READING.map((x, i) => `<button class="pill ${ielts.rpass === i + 1 ? "sel" : ""}" data-p="${i + 1}">${x.set > 1 ? "Ещё · " : ""}Passage ${x.set > 1 ? i - 2 : i + 1}${bestLR(x.id) ? " ✓" : ""}</button>`).join("")}</div>
       <div class="q-num" style="margin-top:22px">Reading · ${esc(r.level)} · 10 вопросов · 20 минут${best ? ` · лучший результат ${best.ok}/${best.total}` : ""}</div>
       <div class="w-bar" style="margin-top:10px">
         <span class="chip" id="rt">${mmss(20 * 60)}</span>
