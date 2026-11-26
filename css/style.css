@@ -1192,3 +1192,30 @@ body.zen .side, body.zen .mtop { opacity: 0; pointer-events: none; transition: o
 .danger-zone .input { flex: 1; min-width: 200px; }
 .btn-danger { --bg: var(--bad); --fg: #fff; }
 .privacy a { color: var(--violet); text-decoration: underline; }
+
+/* ---------- план на день ---------- */
+.plan { padding: 24px 26px; }
+.plan-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.plan-head h2 { font-size: clamp(26px, 3vw, 36px); margin-bottom: 6px; }
+.streak { display: grid; justify-items: center; min-width: 96px; padding: 10px 14px; border-radius: 18px; background: rgba(30, 26, 60, .05); color: var(--muted); line-height: 1.1; text-align: center; }
+.streak .fire { font-size: 26px; filter: grayscale(1); opacity: .5; }
+.streak b { font-size: 28px; color: var(--ink); }
+.streak span:last-child { font-size: 12px; }
+.streak.on { background: linear-gradient(135deg, #FFE7C7, #FFD3E4); color: #8A4B2B; }
+.streak.on .fire { filter: none; opacity: 1; }
+.streak.on b { color: #B4471F; }
+.streak.risk .fire { animation: pulse 1.4s infinite; }
+.plan-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.plan-item { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 14px; border-radius: 18px; background: rgba(255, 255, 255, .6); border: 1px solid var(--glass-border); transition: transform .2s var(--ease); }
+.plan-item:hover { transform: translateY(-2px); }
+.plan-check { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(123, 97, 255, .35); display: grid; place-items: center; color: #fff; font-weight: 700; }
+.plan-item.done .plan-check { background: var(--good); border-color: var(--good); }
+.plan-item.done .plan-t { color: var(--muted); }
+.plan-t { display: grid; gap: 8px; font-size: 14px; font-weight: 500; }
+.plan-bar { display: block; height: 6px; border-radius: 6px; background: rgba(30, 26, 60, .08); overflow: hidden; }
+.plan-bar i { display: block; height: 100%; background: var(--grad); border-radius: inherit; }
+.plan-item.done .plan-bar i { background: var(--good); }
+.plan-n { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 14px; }
+.plan.all { border-color: rgba(34, 160, 107, .35); }
+@media (max-width: 860px) { .plan-list { grid-template-columns: 1fr; } }
+@media (max-width: 760px) { .plan { padding: 18px; } .plan-head h2 { font-size: 24px; } .streak { min-width: 80px; padding: 8px 10px; } .streak b { font-size: 22px; } }

@@ -279,11 +279,52 @@ const Game = (() => {
     all[date] = s;
     writeJSON(KEY_STATS, all);
   }
-  /** Прибавить к сегодняшней статистике: track({answers: 1, xp: 15}). Нужно для календаря активности. */
+  /** Прибавить к сегодняшней статистике: track({answers: 1, xp: 15}). Нужно для календаря и плана на день. */
   function track(add) {
     const s = dayStats();
+    const wasDone = planComplete(s);
     for (const [k, v] of Object.entries(add)) s[k] = (s[k] || 0) + v;
     saveDayStats(s);
+    // план на день только что выполнен — сайт покажет праздник и даст награду
+    if (!wasDone && planComplete(s)) window.dispatchEvent(new CustomEvent("plan-complete"));
+  }
+
+  // ---------- план на день и серия дней ----------
+  // День засчитывается в серию, если выполнен хотя бы один пункт плана. Весь план — бонус.
+  const PLAN = [
+    { id: "answers", title: "Ответить на 10 вопросов", goal: 10, href: "#/learn", have: (d) => d.answers || 0 },
+    { id: "cards", title: "5 карточек или 15 минут фокуса", goal: 5, href: "#/cards",
+      have: (d) => Math.max(d.cards || 0, Math.floor((d.minutes || 0) / 3)) },
+    { id: "ielts", title: "1 задание IELTS", goal: 1, href: "#/ielts", have: (d) => d.ielts || 0 },
+  ];
+  const PLAN_REWARD = { xp: 30, coins: 20 };
+  function dailyPlan(date = today()) {
+    const d = dayStats(date);
+    return PLAN.map((p) => ({ ...p, got: Math.min(p.goal, p.have(d)), done: p.have(d) >= p.goal }));
+  }
+  const planComplete = (d) => !!d && PLAN.every((p) => p.have(d) >= p.goal);
+  const dayCounts = (d) => !!d && PLAN.some((p) => p.have(d) >= p.goal);
+  /** Серия дней подряд: если сегодня ещё ничего не сделано, считаем до вчера (серия ещё не потеряна). */
+  function dayStreak() {
+    const all = allStats();
+    const d = new Date();
+    if (!dayCounts(all[isoDay(d)])) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (dayCounts(all[isoDay(d)])) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  const todayCounts = () => dayCounts(allStats()[today()]);
+  /** Забрать награду за весь план (один раз в день). */
+  function claimPlan(pet) {
+    const s = dayStats();
+    if (!planComplete(s) || s.planClaimed) return null;
+    s.planClaimed = 1;
+    saveDayStats(s);
+    pet.xp += PLAN_REWARD.xp;
+    pet.coins = (pet.coins || 0) + PLAN_REWARD.coins;
+    pet.fun = limit(pet.fun + 2);
+    savePet(pet);
+    return PLAN_REWARD;
   }
   /** Насколько активным был день: 0 — ничего, 1–4 — от «чуть-чуть» до «очень много». */
   function activityLevel(d) {
@@ -441,7 +482,7 @@ const Game = (() => {
 
   return {
     MAX, XP_PER_LEVEL, TOPICS, TOPIC_META, MY_LEVEL, ALL, MISTAKES, TRAINER, sectionProgress,
-    loadMistakes, addMistake, removeMistake,
+    loadMistakes, addMistake, removeMistake, dailyPlan, planComplete, dayStreak, todayCounts, claimPlan, PLAN_REWARD,
     readJSON, writeJSON, newPet, savePet, loadPet, deleteSave, applyTimePassed,
     level, xpInLevel, stage, mood, feeling, answer, play, sleep, restState, finishRest, REST_MS, focusDone, breakDone, cardReviewed,
     dayStats, allStats, track, activityLevel, isoDay, totalFocusMinutes, addDistraction,

@@ -115,7 +115,7 @@
     if (!pet) { chip.style.display = "none"; return; }
     chip.style.display = "";
     chip.innerHTML = `<span class="ava">${Pets.petSVG(pet.animal, "idle", { fx: false })}</span>
-      <span class="ln"><b>${esc(pet.name)}</b> · ур. ${Game.level(pet)}</span>
+      <span class="ln"><b>${esc(pet.name)}</b> · ур. ${Game.level(pet)}${Game.dayStreak() ? ` · 🔥${Game.dayStreak()}` : ""}</span>
       <span class="mini-xp"><span style="width:${(Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100}%"></span></span>`;
   }
 
@@ -261,6 +261,40 @@
     grid.addEventListener("mouseover", (e) => show(e.target.closest("i")));
   }
 
+  // ---------- план на день ----------
+  function planCard() {
+    const plan = Game.dailyPlan();
+    const streak = Game.dayStreak();
+    const doneN = plan.filter((p) => p.done).length;
+    const all = doneN === plan.length;
+    const claimed = Game.dayStats().planClaimed;
+    const risk = streak > 0 && !Game.todayCounts();
+    const note = all ? (claimed ? `План выполнен! Награда получена: +${Game.PLAN_REWARD.xp} XP и ${Game.PLAN_REWARD.coins} монет.` : "План выполнен!")
+      : risk ? `Сделай хотя бы один пункт, чтобы не потерять серию в ${streak} ${plural(streak, "день", "дня", "дней")}.`
+      : doneN ? "Серия на сегодня засчитана. Выполни весь план — получишь награду." : `Выполни весь план и получи +${Game.PLAN_REWARD.xp} XP и ${Game.PLAN_REWARD.coins} монет.`;
+    return `<div class="card plan ${all ? "all" : ""}">
+      <div class="plan-head">
+        <div><h2>План на сегодня</h2><p class="muted">${note}</p></div>
+        <div class="streak ${streak ? "on" : ""} ${risk ? "risk" : ""}" title="Дней подряд, когда ты выполнял(а) хотя бы один пункт плана">
+          <span class="fire">🔥</span><b>${streak}</b><span>${plural(streak, "день", "дня", "дней")} подряд</span></div>
+      </div>
+      <div class="plan-list">${plan.map((p) => `<a class="plan-item ${p.done ? "done" : ""}" href="${p.href}">
+        <span class="plan-check">${p.done ? "✓" : ""}</span>
+        <span class="plan-t">${p.title}<span class="plan-bar"><i style="width:${(p.got / p.goal) * 100}%"></i></span></span>
+        <span class="plan-n">${p.got}/${p.goal}</span></a>`).join("")}</div>
+    </div>`;
+  }
+  /** Весь план выполнен — праздник и награда (срабатывает из Game.track). */
+  window.addEventListener("plan-complete", () => {
+    if (!pet) return;
+    const r = Game.claimPlan(pet);
+    if (!r) return;
+    confetti();
+    toast(`План на день выполнен! +${r.xp} XP и ${r.coins} монет`, "🔥");
+    updateHeader(currentRoute());
+    if ($("#planBox")) $("#planBox").innerHTML = planCard();
+  });
+
   function home() {
     const sp = Pets.SPECIES[pet.animal];
     view.innerHTML = `
@@ -287,6 +321,8 @@
         <span class="dot" style="width:10px;height:10px;left:8%;bottom:14%;animation-delay:-2s"></span>
         <span class="dot" style="width:26px;height:26px;right:6%;top:46%;animation-delay:-4s;opacity:.9"></span>
       </section>
+
+      <section class="section reveal" id="planBox">${planCard()}</section>
 
       <section class="section">
         <div class="section-head reveal">
