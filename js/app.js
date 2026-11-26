@@ -375,20 +375,18 @@
 
       <section class="section reveal" id="calendar">${activityCalendar()}</section>
 
-      <section class="section">
+      ${Api.auth() ? "" : `<section class="section">
         <div class="card save-card">
           <div>
-            <h3>Сохранение</h3>
-            <p>Прогресс хранится в браузере в формате <code>JSON</code>. Его можно скачать файлом
-              и потом загрузить обратно — например, на другом компьютере.</p>
+            <h3>Не потеряй прогресс</h3>
+            <p>Сейчас всё хранится только в этом браузере. Заведи аккаунт — и питомец, серия и карточки
+              сохранятся навсегда и откроются на телефоне и компьютере.</p>
           </div>
           <div class="row">
-            <button class="btn btn-white btn-sm" id="exp">${I.down} Скачать .json</button>
-            <button class="btn btn-white btn-sm" id="imp">${I.up} Загрузить</button>
+            <a class="btn btn-sun btn-sm" href="#/account" id="saveReg">Создать аккаунт</a>
             <a class="btn btn-ghost btn-sm" href="#/new">Новый питомец</a>
-            <input type="file" id="impFile" accept=".json,application/json" hidden>
           </div>
-        </div>
+        </div>`}
       </section>`;
 
     countUp($$("#numbers b"));
@@ -438,30 +436,7 @@
       say(Game.mood(pet));
     };
 
-    $("#exp").onclick = () => {
-      const blob = new Blob([Game.exportSave()], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "bilim-buddy-save.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
-      toast("Файл сохранения скачан");
-    };
-    $("#imp").onclick = () => $("#impFile").click();
-    $("#impFile").onchange = (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      file.text().then((text) => {
-        try {
-          Game.importSave(text);
-          pet = Game.loadPet();
-          toast(`Загружено: ${esc(pet.name)}`);
-          render();
-        } catch (err) {
-          toast("Не получилось прочитать файл", "!");
-        }
-      });
-    };
+    if ($("#saveReg")) $("#saveReg").onclick = (e) => { e.preventDefault(); accMode = "register"; go("#/account"); };
   }
 
   function countUp(els) {
@@ -2415,7 +2390,7 @@
             <p class="muted">Прогресс сохраняется на сервере автоматически каждые 10 секунд.
               ${Api.lastSync() ? `Последняя синхронизация: ${new Date(Api.lastSync()).toLocaleTimeString("ru-RU")}.` : ""}</p>
             <p class="muted">ИИ-учитель: ${h.ai ? `подключён, сегодня осталось вопросов: <b>${left}</b>` : "пока не подключён"}</p></div>
-          <div class="row">${admin ? `<a class="btn btn-sun" href="#/admin">Статистика сайта</a>` : ""}<button class="btn btn-ghost" id="syncNow">Синхронизировать</button><button class="btn" id="logout">Выйти</button></div>
+          <div class="row">${admin ? `<a class="btn btn-sun" href="#/admin">Статистика сайта</a>` : ""}<button class="btn btn-ghost" id="syncNow">Синхронизировать</button><a class="btn btn-ghost" href="#/new">Новый питомец</a><button class="btn" id="logout">Выйти</button></div>
         </div>
         <details class="card danger-zone"><summary>Удалить аккаунт</summary>
           <p class="muted">Аккаунт и весь прогресс на сервере будут стёрты навсегда. Отменить это нельзя.</p>
