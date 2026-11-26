@@ -2257,17 +2257,31 @@
   function choosePage() {
     if (pet && !pick.name) pick = { animal: pet.animal, name: "" };
     view.innerHTML = `
-      <section class="page-head reveal" style="min-height:300px">
+      <section class="page-head reveal land-hero" style="min-height:300px">
         <div>
           <span class="eyebrow" style="--i:0">Bilim Buddy</span>
           <h1 style="--i:1">Учись вместе с питомцем</h1>
-          <p style="--i:2">Отвечай на вопросы — и питомец сыт. Занимайся с таймером — и он растёт.
-            Забудешь про учёбу — загрустит.</p>
+          <p style="--i:2">Английский, IELTS и школьные предметы — с личным ИИ-учителем и питомцем,
+            который растёт, когда ты учишься. Пара минут в день — и это входит в привычку.</p>
+          ${pet ? "" : `<div class="hero-actions" style="--i:3">
+            <a class="btn btn-sun" href="#pickStart" id="landGo">Завести питомца <span class="arr">${I.arrow}</span></a>
+            ${Api.auth() ? "" : `<a class="btn btn-line" href="#/account">У меня есть аккаунт</a>`}</div>`}
         </div>
         <div class="pet-box" id="choosePreview">${Pets.petSVG(pick.animal, "happy")}</div>
       </section>
 
-      <div class="step"><span class="step-n">01</span><h3>Выбери питомца</h3></div>
+      ${pet ? "" : `<section class="section land-feats reveal">
+        <div class="card land-f"><span class="land-ic">AI</span><h3>ИИ-учитель</h3>
+          <p>Объяснит любую тему и разберёт твои ошибки. Видит твой прогресс и подсказывает, что повторить.</p></div>
+        <div class="card land-f"><span class="land-ic">IE</span><h3>Подготовка к IELTS</h3>
+          <p>Listening с живыми голосами, Reading, Speaking и Writing. ИИ проверит эссе по критериям экзамена.</p></div>
+        <div class="card land-f"><span class="land-ic">🔥</span><h3>План на день</h3>
+          <p>Три коротких задания каждый день и серия дней подряд — чтобы учёба стала привычкой.</p></div>
+        <div class="card land-f"><span class="land-ic">♥</span><h3>Питомец растёт</h3>
+          <p>Верные ответы кормят его и дают опыт и монеты. Забудешь про учёбу — загрустит.</p></div>
+      </section>`}
+
+      <div class="step" id="pickStart"><span class="step-n">01</span><h3>Выбери питомца</h3></div>
       <div class="pick-grid reveal">
         ${Object.entries(Pets.SPECIES).map(([k, s], i) => `
           <button class="pick ${k === pick.animal ? "sel" : ""}" data-animal="${k}" style="--i:${i}">
@@ -2286,6 +2300,7 @@
       </form>
       ${!pet && !Api.auth() ? `<p class="muted" style="margin-top:16px">Уже есть аккаунт? <a href="#/account" style="color:var(--violet);font-weight:600">Войти</a> — питомец загрузится с сервера.</p>` : ""}`;
 
+    if ($("#landGo")) $("#landGo").onclick = (e) => { e.preventDefault(); $("#pickStart").scrollIntoView({ behavior: "smooth", block: "start" }); };
     $$(".pick").forEach((b) => {
       const box = b.querySelector(".pet-box");
       b.onmouseenter = () => { if (b.dataset.animal !== pick.animal) setPose(box, "happy", 0, b.dataset.animal); };
@@ -2514,6 +2529,7 @@
     view.className = "";
     void view.offsetWidth;        // перезапуск анимации появления страницы
     view.className = "wrap view";
+    document.body.classList.toggle("no-pet", !pet);
     ROUTES[name]();
     updateHeader(NAV[name]);
     updateTimerChip();

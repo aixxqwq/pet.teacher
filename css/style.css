@@ -1219,3 +1219,17 @@ body.zen .side, body.zen .mtop { opacity: 0; pointer-events: none; transition: o
 .plan.all { border-color: rgba(34, 160, 107, .35); }
 @media (max-width: 860px) { .plan-list { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .plan { padding: 18px; } .plan-head h2 { font-size: 24px; } .streak { min-width: 80px; padding: 8px 10px; } .streak b { font-size: 22px; } }
+
+/* ---------- стартовая страница для новых ---------- */
+.land-hero .hero-actions { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+.land-feats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.land-f { padding: 22px; display: grid; gap: 8px; align-content: start; }
+.land-f h3 { font-size: 20px; }
+.land-f p { color: var(--muted); font-size: 14px; }
+.land-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--grad-soft); color: var(--violet); font-weight: 700; font-size: 18px; }
+@media (max-width: 1000px) { .land-feats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .land-feats { grid-template-columns: 1fr; } }
+/* без питомца меню не нужно */
+@media (min-width: 761px) { body.no-pet { padding-left: 0; } }
+body.no-pet .side, body.no-pet .mtop-btn, body.no-pet .mtop-pet { display: none; }
+body.no-pet .mtop { justify-content: center; }
