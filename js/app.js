@@ -1334,7 +1334,7 @@
       </section>
       <div class="ielts-tabs">
         <div class="modes light" id="ieltsTabs">
-          ${[["listening", "Listening"], ["reading", "Reading"], ["speaking", "Speaking"], ["writing", "Writing"], ["models", "Образцы"]]
+          ${[["listening", "Listening"], ["reading", "Reading"], ["speaking", "Speaking"], ["writing", "Writing"], ["models", "Образцы"], ["mock", "Пробный экзамен"]]
             .map(([k, n]) => `<button data-tab="${k}" class="${ielts.tab === k ? "sel" : ""}">${n}</button>`).join("")}
         </div>
         <span class="muted">Выполнено заданий: <b>${d.done.length}</b> · эссе сохранено: <b>${d.essays.length}</b></span>
@@ -1346,7 +1346,7 @@
         </aside>
       </section>`;
     $$("#ieltsTabs button").forEach((b) => b.onclick = () => { ielts.tab = b.dataset.tab; ieltsPage(); });
-    ({ listening: listeningView, reading: readingView, speaking: speakingView, writing: writingView, models: modelsView })[ielts.tab]();
+    ({ listening: listeningView, reading: readingView, speaking: speakingView, writing: writingView, models: modelsView, mock: mockView })[ielts.tab]();
   }
 
   /** Правая колонка IELTS: критерии и советы для текущей вкладки. */
@@ -1354,6 +1354,14 @@
     const official = `<div class="card white"><b>Официальные пробные тесты</b>
       <span class="hint">Настоящие задания экзамена секретные. Официальные примеры бесплатно публикуют сами организаторы:</span>
       <div class="links">${IELTS_LR.OFFICIAL.map((o) => `<a href="${o.url}" target="_blank" rel="noopener">${esc(o.name)} ↗</a>`).join("")}</div></div>`;
+    if (ielts.tab === "mock") return `
+          <div class="card white"><b>Советы на экзамен</b>
+            <ul class="side-list">
+              <li>Перед каждой частью Listening быстро прочитай вопросы и подчеркни ключевые слова.</li>
+              <li>В Reading не застревай на одном вопросе: пропусти и вернись в конце.</li>
+              <li>Следи за лимитом слов в пропусках: «ONE WORD» — значит одно слово.</li>
+              <li>В Writing оставь 5 минут, чтобы перечитать эссе и исправить ошибки.</li>
+            </ul></div>${official}`;
     if (ielts.tab === "speaking" || ielts.tab === "writing") return `
           <div class="card white">
             <b>Как оценивают ${ielts.tab === "speaking" ? "Speaking" : "Writing"}</b>
@@ -1401,8 +1409,8 @@
   const norm = (s) => String(s).toLowerCase().replace(/[£%.,!?"'’]/g, "").replace(/\s+/g, " ").trim();
 
   /** Вопросы одной части: группы с инструкциями, как в бланке экзамена. */
-  function renderGroups(groups) {
-    let n = 0;
+  function renderGroups(groups, start = 0) {
+    let n = start;
     return groups.map((g) => `
       <div class="lr-group">
         <p class="lr-instr">${esc(g.instr)}</p>
@@ -1430,11 +1438,11 @@
   }
 
   /** Проверить ответы: подсветить верные и неверные, показать правильный ответ. */
-  function checkGroups(groups) {
+  function checkGroups(groups, start = 0) {
     const all = groups.flatMap((g) => g.qs);
     let ok = 0;
     all.forEach((q, i) => {
-      const n = i + 1;
+      const n = start + i + 1;
       const row = $(`.lr-q[data-n="${n}"]`);
       let given = "";
       if (q.type === "gap") given = $(`#q${n}`).value;
@@ -1637,6 +1645,195 @@
         </details>`;
       $("#lrOut").scrollIntoView({ behavior: "smooth", block: "start" });
     };
+  }
+
+  // ---------- Пробный экзамен: Listening (40) → Reading (40) → Writing Task 2 ----------
+  let mock = null;
+  const roundBand = (x) => Math.round(x * 2) / 2;
+  function mockView() {
+    stopIeltsTimer();
+    stopSpeech();
+    const box = $("#ieltsMain");
+    if (!mock) {
+      const best = ieltsData().mock;
+      box.innerHTML = `
+        <div class="q-in"><div class="q-num">Пробный экзамен IELTS Academic</div>
+          <h2 class="q-text">Как настоящий экзамен — от начала до конца</h2></div>
+        <ol class="mock-steps">
+          <li><b>Listening · ~30 минут.</b> Все 4 части подряд, 40 вопросов. Запись звучит один раз — паузы нет, как на экзамене.</li>
+          <li><b>Reading · 60 минут.</b> Три текста, 40 вопросов. Когда время кончится, ответы сдадутся сами.</li>
+          <li><b>Writing · 40 минут.</b> Эссе Task 2 (от 250 слов). ИИ-экзаменатор поставит примерный band${Api.auth() ? "" : " (нужно войти в аккаунт)"}.</li>
+        </ol>
+        <p class="hint">Speaking в пробный экзамен не входит — тренируй его во вкладке «Speaking». Не закрывай страницу до конца: прогресс экзамена не сохраняется.
+          Нужно около 2 часов и наушники.</p>
+        ${best ? `<p class="muted">Прошлый результат: overall <b>${best.overall}</b> (L ${best.l} · R ${best.r}${best.w ? ` · W ${best.w}` : ""}), ${new Date(best.date).toLocaleDateString("ru-RU")}.</p>` : ""}
+        <div class="row" style="margin-top:16px"><button class="btn btn-sun" id="mStart">Начать экзамен <span class="arr">${I.arrow}</span></button></div>`;
+      $("#mStart").onclick = () => {
+        const acc = ["GB", "AU", "GB", "US"];
+        mock = { stage: "listening", accents: acc, l: 0, r: 0, w: null };
+        mockView();
+      };
+      return;
+    }
+    if (mock.stage === "listening") return mockListening(box);
+    if (mock.stage === "reading") return mockReading(box);
+    if (mock.stage === "writing") return mockWriting(box);
+    return mockResult(box);
+  }
+
+  function mockListening(box) {
+    const parts = IELTS_LR.LISTENING;
+    let start = 0;
+    const html = parts.map((t) => { const h = `<h3 class="mock-part">Part ${t.part} · вопросы ${start + 1}–${start + 10}</h3>${renderGroups(t.groups, start)}`; start += 10; return h; }).join("");
+    box.innerHTML = `
+      <div class="q-num">Пробный экзамен · Listening · 40 вопросов</div>
+      <div class="card lp"><div class="lp-row">
+        <button class="lp-btn" id="mPlay" aria-label="Начать">▶</button>
+        <span id="mNow" class="muted">Прочитай вопросы Part 1 и нажми ▶. Дальше части пойдут подряд без остановки.</span>
+      </div></div>
+      <form id="lrForm" autocomplete="off">${html}</form>
+      <div class="row" style="margin-top:18px"><button class="btn btn-sun" id="mNext">Сдать Listening и перейти к Reading</button></div>`;
+    let k = 0;
+    const audio = new Audio();
+    lrAudio = audio;
+    const playPart = () => {
+      if (k >= parts.length) { $("#mNow").textContent = "Запись закончилась. Проверь ответы и нажми «Сдать Listening»."; return; }
+      const files = (IELTS_LR.AUDIO || {})[parts[k].id];
+      if (!files) { $("#mNow").textContent = "Аудио не найдено."; return; }
+      audio.src = files[mock.accents[k]] || Object.values(files)[0];
+      audio.play();
+      $("#mNow").textContent = `Сейчас звучит Part ${k + 1} из 4…`;
+    };
+    audio.onended = () => { k++; setTimeout(playPart, 2500); };
+    $("#mPlay").onclick = () => { $("#mPlay").disabled = true; playPart(); };
+    cleanup.push(() => audio.pause());
+    $("#mNext").onclick = () => {
+      if (k < parts.length && !confirm("Запись ещё не закончилась. Всё равно сдать Listening?")) return;
+      audio.pause();
+      mock.l = checkGroups(parts.flatMap((t) => t.groups)).ok;
+      mock.stage = "reading";
+      mockView();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+  }
+
+  function mockReading(box) {
+    const ps = IELTS_LR.READING;
+    let start = 0;
+    const html = ps.map((r, i) => {
+      const h = `<h3 class="mock-part">Passage ${i + 1} · вопросы ${start + 1}–${start + 10}</h3>
+        <article class="lr-passage"><h2>${esc(r.title)}</h2>${r.paras.map(([k, t]) => `<p><b class="lr-para">${esc(k)}</b>${esc(t)}</p>`).join("")}</article>
+        ${renderGroups(r.groups, start)}`;
+      start += 10;
+      return h;
+    }).join("");
+    const total = start;
+    box.innerHTML = `
+      <div class="q-num">Пробный экзамен · Reading · ${total} вопросов</div>
+      <div class="w-bar mock-timer"><span class="chip" id="mT">${mmss(60 * 60)}</span><span class="muted">Время идёт. Совет: ~20 минут на текст.</span></div>
+      <form id="lrForm" autocomplete="off">${html}</form>
+      <div class="row" style="margin-top:18px"><button class="btn btn-sun" id="mNext">Сдать Reading и перейти к Writing</button></div>`;
+    let left = mock.rLeft || 60 * 60;
+    const finish = () => {
+      stopIeltsTimer();
+      mock.r = checkGroups(ps.flatMap((r) => r.groups)).ok;
+      mock.rTotal = total;
+      mock.stage = "writing";
+      mockView();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    ieltsTimer = setInterval(() => {
+      left -= 1;
+      mock.rLeft = left;
+      const t = $("#mT");
+      if (!t) return stopIeltsTimer();
+      t.textContent = mmss(Math.max(0, left));
+      t.className = "chip " + (left <= 300 ? "bad" : "");
+      if (left <= 0) { Timer.chime(); toast("Время Reading вышло — ответы сданы", "!"); finish(); }
+    }, 1000);
+    cleanup.push(stopIeltsTimer);
+    $("#mNext").onclick = () => { if (confirm("Сдать Reading? Вернуться к нему будет нельзя.")) finish(); };
+  }
+
+  function mockWriting(box) {
+    if (!mock.task) mock.task = IELTS.TASK2[Math.floor(Math.random() * IELTS.TASK2.length)];
+    const task = mock.task;
+    box.innerHTML = `
+      <div class="q-num">Пробный экзамен · Writing Task 2 · 40 минут · от 250 слов</div>
+      <div class="cue"><b>${esc(task.type)}</b><p>${esc(task.text)}</p></div>
+      <div class="w-bar mock-timer"><span class="chip" id="mT">${mmss(40 * 60)}</span><span class="chip" id="mWc">0 слов</span></div>
+      <textarea class="input w-text" id="mText" rows="16" placeholder="Write your essay here...">${esc(mock.text || "")}</textarea>
+      <div class="row" style="margin-top:14px"><button class="btn btn-sun" id="mNext">Сдать экзамен</button></div>`;
+    const ta = $("#mText");
+    const wc = () => { const n = (ta.value.trim().match(/\S+/g) || []).length; $("#mWc").textContent = `${n} слов`; mock.text = ta.value; return n; };
+    ta.oninput = wc; wc();
+    let left = mock.wLeft || 40 * 60;
+    const finish = () => { stopIeltsTimer(); mock.stage = "result"; mockView(); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    ieltsTimer = setInterval(() => {
+      left -= 1;
+      mock.wLeft = left;
+      const t = $("#mT");
+      if (!t) return stopIeltsTimer();
+      t.textContent = mmss(Math.max(0, left));
+      t.className = "chip " + (left <= 300 ? "bad" : "");
+      if (left <= 0) { Timer.chime(); toast("40 минут прошло — работа сдана", "!"); finish(); }
+    }, 1000);
+    cleanup.push(stopIeltsTimer);
+    $("#mNext").onclick = () => {
+      if (wc() < 150 && !confirm("В эссе меньше 150 слов — на экзамене за это сильно снижают оценку. Всё равно сдать?")) return;
+      finish();
+    };
+  }
+
+  async function mockResult(box) {
+    const L = IELTS_LR.band(mock.l, 40), R = IELTS_LR.band(mock.r, mock.rTotal || 30);
+    const show = () => {
+      const bands = [L, R].concat(typeof mock.w === "number" ? [mock.w] : []);
+      const overall = roundBand(bands.reduce((a, b) => a + b, 0) / bands.length);
+      box.innerHTML = `
+        <div class="q-num">Пробный экзамен · результат</div>
+        <div class="mock-res">
+          <div class="mock-band big"><span>Overall</span><b>${overall.toFixed(1)}</b></div>
+          <div class="mock-band"><span>Listening</span><b>${Number(L).toFixed(1)}</b><em>${mock.l}/40</em></div>
+          <div class="mock-band"><span>Reading</span><b>${Number(R).toFixed(1)}</b><em>${mock.r}/${mock.rTotal || 30}</em></div>
+          <div class="mock-band"><span>Writing</span><b>${typeof mock.w === "number" ? mock.w.toFixed(1) : "—"}</b><em>${mock.wNote || ""}</em></div>
+        </div>
+        <p class="hint">Это примерная оценка на заданиях Bilim Buddy, а не официальный результат. Overall посчитан без Speaking.</p>
+        <div id="mAi"></div>
+        <div class="row" style="margin-top:16px"><button class="btn btn-sun" id="mAgain">Пройти ещё раз</button></div>`;
+      $("#mAgain").onclick = () => { mock = null; mockView(); };
+      return overall;
+    };
+    if (mock.w === null && !mock.wTried) {
+      mock.wTried = true;
+      const words = ((mock.text || "").trim().match(/\S+/g) || []).length;
+      if (!Api.auth()) { mock.wNote = "войди, чтобы ИИ оценил эссе"; }
+      else if (words < 40) { mock.wNote = "эссе слишком короткое"; }
+      else {
+        box.innerHTML = `<div class="ai-wait"><span class="msg assistant typing"><span></span><span></span><span></span></span> Экзаменатор проверяет эссе… (до минуты)</div>`;
+        try {
+          const r = await Api.req("POST", "/api/tutor/essay", { kind: "Task 2 · эссе", prompt: mock.task.text, text: mock.text });
+          mock.w = typeof r.overall === "number" ? r.overall : null;
+          mock.ai = r;
+          mock.wNote = `${words} слов`;
+        } catch (e) { mock.wNote = "ИИ не ответил"; }
+      }
+    }
+    const overall = show();
+    if (mock.ai) $("#mAi").innerHTML = `<details class="lr-script"><summary>Разбор эссе от ИИ</summary>
+      ${(mock.ai.criteria || []).map((c) => `<p><b>${esc(c.name)} — ${esc(String(c.band))}.</b> ${esc(c.comment)}</p>`).join("")}
+      ${(mock.ai.improve || []).length ? `<p><b>Что улучшить:</b></p><ul>${mock.ai.improve.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</details>`;
+    if (!mock.saved) {
+      mock.saved = true;
+      const d = ieltsData();
+      d.mock = { overall: overall.toFixed(1), l: L, r: R, w: typeof mock.w === "number" ? mock.w : null, date: Date.now() };
+      ieltsSave(d);
+      pet.xp += 40; pet.coins = (pet.coins || 0) + 20; Game.savePet(pet);
+      Game.track({ ielts: 1, xp: 40 });
+      confetti();
+      toast("Пробный экзамен пройден! +40 XP и 20 монет", "★");
+      updateHeader("ielts");
+    }
   }
 
   // ---------- Reading ----------
