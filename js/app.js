@@ -88,14 +88,15 @@
 
   // ---------- шапка ----------
   function updateHeader(route) {
-    $$("#nav a, #tabbar a").forEach((a) => a.classList.toggle("active", a.dataset.route === route));
-    $("#tabbar").style.display = pet ? "" : "none";
+    $$("#nav a").forEach((a) => a.classList.toggle("active", a.dataset.route === route));
     const dueN = Cards.due().length;   // сколько карточек ждут повторения
     $("#dueBadge").textContent = dueN || "";
     $("#dueBadge").classList.toggle("on", dueN > 0);
-    $("#tabDue").textContent = dueN || "";
-    $("#tabDue").classList.toggle("on", dueN > 0);
     $("#nav").style.visibility = pet ? "" : "hidden";
+    // полоска сверху на телефоне: название раздела и аватарка питомца
+    const cur = $(`#nav a[data-route="${route}"]`);
+    $("#mtopTitle").textContent = cur ? cur.textContent.trim().replace(/\s*\d+$/, "") : ({ account: "Аккаунт", rest: "Отдых", admin: "Админка" }[route] || "Bilim Buddy");
+    $("#mtopPet").innerHTML = pet ? Pets.petSVG(pet.animal, "idle", { fx: false }) : "";
     const acc = $("#accChip");
     if (acc) {
       const a = Api.auth();
@@ -117,7 +118,21 @@
       <span class="ln"><b>${esc(pet.name)}</b> · ур. ${Game.level(pet)}</span>
       <span class="mini-xp"><span style="width:${(Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100}%"></span></span>`;
   }
-  window.addEventListener("scroll", () => $(".topbar").classList.toggle("scrolled", scrollY > 8), { passive: true });
+
+  // ---------- боковое меню: свернуть на компьютере, выдвинуть на телефоне ----------
+  const SIDE_KEY = "petTeacher.sideMini";
+  try { document.body.classList.toggle("side-mini", localStorage.getItem(SIDE_KEY) === "1"); } catch (e) {}
+  $("#sideToggle").onclick = () => {
+    const mini = document.body.classList.toggle("side-mini");
+    $("#sideToggle").title = mini ? "Развернуть меню" : "Свернуть меню";
+    try { localStorage.setItem(SIDE_KEY, mini ? "1" : "0"); } catch (e) {}
+  };
+  const closeMenu = () => document.body.classList.remove("menu-open");
+  $("#menuOpen").onclick = () => document.body.classList.add("menu-open");
+  $("#menuClose").onclick = closeMenu;
+  $("#sideDim").onclick = closeMenu;
+  $$("#side a").forEach((a) => a.addEventListener("click", closeMenu));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 
   // ============================================================
   //  Главная: питомец, шкалы, действия

@@ -102,9 +102,17 @@
 :root[data-theme="dark"] .pair.ok { background: #15422D; }
 :root[data-theme="dark"] .pair.bad { background: #431414; }
 :root[data-theme="dark"] .lp-opts select { background: #221C3B; }
+:root[data-theme="dark"] .side { background: rgba(36, 30, 72, 0.60); box-shadow: 0 10px 30px -20px rgba(0, 0, 0, 0.64); }
+:root[data-theme="dark"] .side-toggle, :root[data-theme="dark"] .side-close, :root[data-theme="dark"] .mtop-btn { background: rgba(36, 30, 72, 0.55); }
+:root[data-theme="dark"] .side .nav a:hover { background: rgba(36, 30, 72, 0.70); }
+:root[data-theme="dark"] .side .nav a.active { background: #5B45E0; }
 @media (max-width: 760px) {
   :root[data-theme="dark"] .tabbar { background: rgba(36, 30, 72, 0.78); box-shadow: 0 16px 40px -18px rgba(0, 0, 0, 0.80); }
   :root[data-theme="dark"] .tabbar a.active { background: #5B45E0; }
+  :root[data-theme="dark"] .mtop { background: rgba(36, 30, 72, 0.70); }
+  :root[data-theme="dark"] .side { background: rgba(36, 30, 72, 0.94); }
+  :root[data-theme="dark"] body.menu-open .side { box-shadow: 20px 0 60px -20px rgba(0, 0, 0, 0.56); }
+  :root[data-theme="dark"] .side-dim { background: rgba(236, 233, 255, 0.45); }
 }
 
 /* ---------- ручные правки ---------- */
@@ -117,6 +125,8 @@
 :root[data-theme="dark"] select option { background: #221C44; color: #ECE9FF; }
 :root[data-theme="dark"] .cal i.l0 { background: rgba(255, 255, 255, .07); }
 :root[data-theme="dark"] img[src$="logo.svg"] { filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .4)); }
+:root[data-theme="dark"] .side-dim { background: rgba(0, 0, 0, .55); }
+:root[data-theme="dark"] .side .nav a.active { background: #ECE9FF; color: #1A1538; }
 :root[data-theme="dark"] .toast { border: 1px solid rgba(255, 255, 255, .12); }
 :root[data-theme="dark"] .btn:not(.btn-white):not(.btn-ghost):not(.btn-line) { --bg: #5B45E0; }
 :root[data-theme="dark"] .btn-white { --bg: #2A2352; }

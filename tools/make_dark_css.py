@@ -44,6 +44,8 @@ MANUAL = f"""
 {P} select option {{ background: #221C44; color: #ECE9FF; }}
 {P} .cal i.l0 {{ background: rgba(255, 255, 255, .07); }}
 {P} img[src$="logo.svg"] {{ filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .4)); }}
+{P} .side-dim {{ background: rgba(0, 0, 0, .55); }}
+{P} .side .nav a.active {{ background: #ECE9FF; color: #1A1538; }}
 {P} .toast {{ border: 1px solid rgba(255, 255, 255, .12); }}
 {P} .btn:not(.btn-white):not(.btn-ghost):not(.btn-line) {{ --bg: #5B45E0; }}
 {P} .btn-white {{ --bg: #2A2352; }}
