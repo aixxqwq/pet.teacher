@@ -1918,7 +1918,8 @@
     stopIeltsTimer();
     const box = $("#ieltsMain");
     const parts = `<div class="pills" id="parts">${[1, 2, 3].map((p) => `<button class="pill ${ielts.part === p ? "sel" : ""}" data-p="${p}">Part ${p}</button>`).join("")}</div>`;
-    const rec = `<div class="rec" id="rec"><button class="btn btn-ghost btn-sm" id="recBtn">● Записать себя</button><span class="hint" id="recHint">Запись остаётся только в браузере.</span></div>`;
+    const rec = `<div class="sp-ai card" id="spAi"></div>
+      <div class="rec" id="rec"><button class="btn btn-ghost btn-sm" id="recBtn">● Записать себя</button><span class="hint" id="recHint">Только послушать себя — запись остаётся в браузере.</span></div>`;
     if (ielts.part === 1) {
       const t = IELTS.PART1[ielts.p1];
       const q = t.q[ielts.q];
@@ -1939,6 +1940,7 @@
       const dn = $("#doneP1");
       if (dn) dn.onclick = () => { ieltsReward("s1:" + t.topic, 5, "Part 1 пройден."); ielts.p1 = rndIdx(IELTS.PART1, ielts.p1); ielts.q = 0; speakingView(); };
       $("#newTopic").onclick = () => { ielts.p1 = rndIdx(IELTS.PART1, ielts.p1); ielts.q = 0; speakingView(); };
+      speakAI(1, q);
     } else if (ielts.part === 2) {
       const c = IELTS.PART2[ielts.p2];
       box.innerHTML = `${parts}
@@ -1959,6 +1961,7 @@
       $("#startTalk").onclick = () => runTalk(c);
       $("#toP3").onclick = () => { ielts.part = 3; ielts.q = 0; speakingView(); };
       $("#newCard").onclick = () => { ielts.p2 = rndIdx(IELTS.PART2, ielts.p2); speakingView(); };
+      speakAI(2, `${c.card}\nYou should say: ${c.say.join("; ")}`);
     } else {
       const c = IELTS.PART2[ielts.p2];
       box.innerHTML = `${parts}
@@ -1975,9 +1978,111 @@
         </div>`;
       $("#doneP3").onclick = () => { ieltsReward("s3:" + ielts.p2, 5, "Part 3 пройден."); ielts.p2 = rndIdx(IELTS.PART2, ielts.p2); speakingView(); };
       $("#newCard").onclick = () => { ielts.p2 = rndIdx(IELTS.PART2, ielts.p2); speakingView(); };
+      speakAI(3, c.part3.map((q, i) => `${i + 1}. ${q}`).join("\n"));
     }
     $$("#parts .pill").forEach((b) => b.onclick = () => { ielts.part = +b.dataset.p; ielts.q = 0; speakingView(); });
     setupRecorder();
+  }
+
+  /**
+   * Ответ голосом → браузер превращает речь в текст → ИИ-экзаменатор оценивает.
+   * Если речь распознана неточно, текст можно поправить. Если браузер не умеет распознавать — можно напечатать ответ.
+   */
+  let spRec = null;
+  function stopRecognition() { if (spRec) { spRec.onend = null; try { spRec.stop(); } catch (e) { /* уже */ } spRec = null; } }
+  function speakAI(part, question) {
+    const box = $("#spAi");
+    if (!box) return;
+    stopRecognition();
+    cleanup.push(stopRecognition);
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const start = () => {
+      box.innerHTML = `<div class="sp-head"><b>✦ Ответь — ИИ-экзаменатор оценит</b>
+          <span class="muted">Беглость, словарный запас и грамматика по критериям IELTS. Произношение по тексту не оценивается.</span></div>
+        <div class="row">
+          ${SR ? `<button class="btn btn-sun" id="spGo">🎙 Ответить голосом</button>` : ""}
+          <button class="btn ${SR ? "btn-ghost" : "btn-sun"}" id="spType">⌨ Написать ответ</button>
+          ${SR ? `<select class="input sp-accent" id="spLang" title="Какой английский лучше понимает распознавание"><option value="en-GB">British</option><option value="en-US">American</option><option value="en-IN">Indian</option><option value="en-AU">Australian</option></select>` : ""}
+        </div>
+        ${SR ? "" : `<p class="hint">Этот браузер не умеет превращать речь в текст. Открой сайт в Chrome или Edge — или напиши ответ, как сказал бы его вслух.</p>`}`;
+      if ($("#spLang")) { $("#spLang").value = ielts.spLang || "en-GB"; $("#spLang").onchange = () => { ielts.spLang = $("#spLang").value; }; }
+      if ($("#spGo")) $("#spGo").onclick = listen;
+      $("#spType").onclick = () => edit("", 0, 0, true);
+    };
+    // слушаем: текст появляется прямо во время речи
+    const listen = () => {
+      let finalText = "", t0 = Date.now(), last = Date.now(), pauses = 0, active = true;
+      box.innerHTML = `<div class="sp-head"><b>🎙 Говори по-английски…</b><span class="muted" id="spTime">0:00</span></div>
+        <div class="sp-live" id="spLive"><span class="muted">Начни говорить — текст появится здесь.</span></div>
+        <div class="row"><button class="btn btn-sun" id="spStop">■ Закончить ответ</button><button class="btn btn-ghost" id="spCancel">Отмена</button></div>`;
+      const r = new SR();
+      spRec = r;
+      r.lang = ielts.spLang || "en-GB";
+      r.continuous = true;
+      r.interimResults = true;
+      r.onresult = (e) => {
+        const now = Date.now();
+        if (now - last > 3000 && finalText) pauses++;
+        last = now;
+        let interim = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) finalText += e.results[i][0].transcript.trim() + " ";
+          else interim += e.results[i][0].transcript;
+        }
+        const live = $("#spLive");
+        if (live) live.innerHTML = `${esc(finalText)}<span class="muted">${esc(interim)}</span>`;
+      };
+      r.onerror = (e) => {
+        if (e.error === "no-speech" || e.error === "aborted") return;          // просто тишина — слушаем дальше
+        active = false;
+        clearInterval(timer);
+        stopRecognition();
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") toast("Нет доступа к микрофону. Разреши его в настройках браузера.", "!");
+        else toast("Распознавание речи сейчас не работает в этом браузере. Напиши ответ текстом или открой сайт в Chrome.", "!");
+        edit(finalText.trim(), Math.round((Date.now() - t0) / 1000), pauses, !finalText.trim());
+      };
+      r.onend = () => { if (active && spRec === r) { try { r.start(); } catch (e) { /* перезапуск после тишины */ } } };   // Chrome останавливается после тишины — продолжаем
+      let timer = null;
+      try { r.start(); } catch (e) { toast("Не получилось включить микрофон", "!"); start(); return; }
+      timer = setInterval(() => { const el = $("#spTime"); if (!el) return clearInterval(timer); const sec = Math.round((Date.now() - t0) / 1000); el.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; }, 500);
+      $("#spStop").onclick = () => { active = false; clearInterval(timer); stopRecognition(); edit(finalText.trim(), Math.round((Date.now() - t0) / 1000), pauses, false); };
+      $("#spCancel").onclick = () => { active = false; clearInterval(timer); stopRecognition(); start(); };
+    };
+    // проверить и поправить расшифровку, потом отправить
+    const edit = (text, seconds, pauses, typed) => {
+      const words = (text.match(/\S+/g) || []).length;
+      box.innerHTML = `<div class="sp-head"><b>${typed ? "⌨ Напиши ответ так, как сказал(а) бы его вслух" : "Проверь, что распознал сайт"}</b>
+          ${typed ? "" : `<span class="muted">${words} слов · ${seconds} сек · ${seconds ? Math.round(words / seconds * 60) : 0} слов/мин${pauses ? ` · долгих пауз: ${pauses}` : ""}</span>`}</div>
+        ${typed ? "" : `<p class="hint">${words ? "Если какое-то слово распознано неправильно — поправь его. Если неправильно распознано много слов, это подсказка: их стоит произносить чётче и медленнее." : "Сайт ничего не расслышал. Проверь микрофон, говори чуть громче — или напиши ответ текстом."}</p>`}
+        <textarea class="input sp-text" id="spText" rows="6" placeholder="I'd say that…">${esc(text)}</textarea>
+        <div class="row"><button class="btn btn-sun" id="spCheck">✦ Оценить ответ</button>${SR ? `<button class="btn btn-ghost" id="spAgain">🎙 Ответить заново</button>` : ""}</div>
+        <div id="spOut"></div>`;
+      if ($("#spAgain")) $("#spAgain").onclick = listen;
+      $("#spCheck").onclick = async () => {
+        const t = $("#spText").value.trim();
+        if ((t.match(/\S+/g) || []).length < 5) { toast("Ответ слишком короткий — скажи хотя бы пару предложений", "!"); return; }
+        if (!Api.auth()) { $("#spOut").innerHTML = `<p class="hint">Оценка ИИ доступна после входа в аккаунт. <a href="#/account">Войти</a></p>`; return; }
+        const out = $("#spOut");
+        out.innerHTML = `<div class="ai-wait"><span class="msg assistant typing"><span></span><span></span><span></span></span> Экзаменатор слушает твой ответ…</div>`;
+        $("#spCheck").disabled = true;
+        try {
+          const r = await Api.req("POST", "/api/tutor/speaking", { part, question, transcript: t, seconds: typed ? 0 : seconds, pauses: typed ? 0 : pauses });
+          const band = (v) => (typeof v === "number" ? v.toFixed(1) : esc(v));
+          out.innerHTML = `<div class="ai-result">
+              <div class="ai-overall"><span>Примерный band (без произношения)</span><b>${band(r.overall)}</b></div>
+              <div class="ai-crit">${(r.criteria || []).map((c) => `<div><span class="chip grad">${band(c.band)}</span><b>${esc(c.name)}</b><p>${esc(c.comment)}</p></div>`).join("")}</div>
+              ${(r.strengths || []).length ? `<h4>Что получилось</h4><ul>${r.strengths.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+              ${(r.improve || []).length ? `<h4>Что улучшить</h4><ul>${r.improve.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+              ${(r.corrections || []).length ? `<h4>Исправления</h4><div class="ai-fix">${r.corrections.map((c) => `<div><s>${esc(c.wrong)}</s> → <b>${esc(c.right)}</b><span>${esc(c.why)}</span></div>`).join("")}</div>` : ""}
+              ${r.better ? `<h4>Как можно было ответить</h4><p class="sp-better">${esc(r.better)}</p>` : ""}
+              <span class="hint">Это примерная оценка ИИ по тексту ответа, а не официальный результат IELTS. Произношение не оценивалось.</span>
+            </div>`;
+          if (!ieltsData().done.includes("sai:" + part + ":" + question.slice(0, 40))) ieltsReward("sai:" + part + ":" + question.slice(0, 40), 10, "Speaking оценён.");
+        } catch (e) { out.innerHTML = `<p class="hint">${esc(e.message)}</p>`; }
+        if ($("#spCheck")) $("#spCheck").disabled = false;
+      };
+    };
+    start();
   }
 
   /** Part 2: минута подготовки, затем 2 минуты речи. */

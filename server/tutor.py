@@ -168,3 +168,47 @@ EXPLAIN_SYSTEM = """Ты — добрый учитель. Ученик ошиб�
 def explain(question, answer, chosen):
     user = f"Вопрос: {question}\nПравильный ответ: {answer}\nУченик ответил: {chosen or '(не указано)'}"
     return _call([{"role": "system", "content": EXPLAIN_SYSTEM}, {"role": "user", "content": user}], max_tokens=400)
+
+
+# ---------- Speaking: оценка по расшифровке речи ----------
+SPEAK_SYSTEM = """Ты — опытный экзаменатор IELTS Speaking. Тебе дают расшифровку устного ответа ученика,
+сделанную автоматическим распознаванием речи в браузере, и данные о темпе речи.
+Важно:
+- В расшифровке могут быть ошибки распознавания и нет нормальной пунктуации. Не снижай оценку за пунктуацию
+  и за явные ошибки распознавания. Если слово похоже на ошибку распознавания, можешь мягко отметить,
+  что его, возможно, стоит произносить чётче.
+- Произношение по тексту оценить нельзя — не ставь за него балл.
+- Заглавные буквы и пунктуацию в устной речи не оценивай и НЕ добавляй их в corrections — исправляй только слова и грамматику.
+- Оцени по трём критериям: Fluency and Coherence, Lexical Resource, Grammatical Range and Accuracy. Шаг 0.5, строго, как на экзамене.
+- Учитывай длину ответа для части: Part 1 — 2–4 предложения, Part 2 — до 2 минут монолога, Part 3 — развёрнутые рассуждения.
+  Слишком короткий ответ снижает Fluency and Coherence.
+- Темп: 110–160 слов в минуту — естественно; много долгих пауз снижает беглость.
+- Комментарии — по-русски, примеры исправлений и улучшенный ответ — на английском.
+Верни строго JSON:
+{
+  "overall": 6.0,
+  "criteria": [
+    {"name": "Fluency and Coherence", "band": 6.0, "comment": "..."},
+    {"name": "Lexical Resource", "band": 6.0, "comment": "..."},
+    {"name": "Grammatical Range and Accuracy", "band": 6.0, "comment": "..."}
+  ],
+  "strengths": ["..."],
+  "improve": ["конкретный совет", "..."],
+  "corrections": [{"wrong": "фраза ученика", "right": "как лучше", "why": "почему"}],
+  "better": "короткий пример, как можно было ответить на band 7–8 (на английском, 3–6 предложений)"
+}
+overall — среднее трёх критериев, округлённое до 0.5. corrections — до 5 самых важных."""
+
+
+def check_speaking(part, question, transcript, seconds, pauses):
+    words = len(transcript.split())
+    wpm = round(words / seconds * 60) if seconds else 0
+    user = (f"Part: {part}\nВопрос/задание:\n{question}\n\n"
+            f"Длительность ответа: {seconds} сек, слов: {words}, темп: {wpm} слов/мин, долгих пауз (больше 3 сек): {pauses}\n\n"
+            f"Расшифровка ответа:\n<answer>\n{transcript[:5000]}\n</answer>")
+    raw, tokens = _call([{"role": "system", "content": SPEAK_SYSTEM}, {"role": "user", "content": user}],
+                        max_tokens=2500, json_mode=True)
+    try:
+        return json.loads(raw), tokens
+    except json.JSONDecodeError:
+        raise TutorError("Экзаменатор ответил в неожиданном формате. Попробуй ещё раз.")

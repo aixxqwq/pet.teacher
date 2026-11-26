@@ -1306,3 +1306,13 @@ body.no-pet .mtop { justify-content: center; }
 .cl-days { font-variant-numeric: tabular-nums; }
 .lang-btn { font-size: 12px; font-weight: 700; letter-spacing: .02em; }
 @media (min-width: 761px) { body.side-mini .side-row .lang-btn { width: 40px; } }
+
+/* ---------- Speaking: оценка ИИ ---------- */
+.sp-ai { margin-top: 20px; padding: 18px 20px; display: grid; gap: 12px; }
+.sp-ai:empty { display: none; }
+.sp-head { display: grid; gap: 4px; }
+.sp-head b { font-size: 17px; }
+.sp-accent { width: auto; padding: 8px 12px; }
+.sp-live { min-height: 90px; padding: 14px 16px; border-radius: 14px; background: rgba(123, 97, 255, .07); line-height: 1.6; }
+.sp-text { width: 100%; resize: vertical; }
+.sp-better { font-style: italic; }

@@ -387,6 +387,25 @@ def tutor_essay(body: EssayIn, user=Depends(current_user)):
         raise HTTPException(503, str(e))
 
 
+class SpeakIn(BaseModel):
+    part: int = Field(ge=1, le=3)
+    question: str = Field(max_length=2000)
+    transcript: str = Field(min_length=3, max_length=6000)
+    seconds: int = Field(default=0, ge=0, le=900)
+    pauses: int = Field(default=0, ge=0, le=500)
+
+
+@app.post("/api/tutor/speaking")
+def tutor_speaking(body: SpeakIn, user=Depends(current_user)):
+    check_ai_limit(user)
+    try:
+        result, tokens = tutor.check_speaking(body.part, body.question, body.transcript, body.seconds, body.pauses)
+        db.ai_count(user["id"], tokens)
+        return result
+    except tutor.TutorError as e:
+        raise HTTPException(503, str(e))
+
+
 # ---------- статистика ----------
 ROUTES = {"home", "learn", "quiz", "cards", "review", "ielts", "tutor", "focus", "my", "new", "account", "admin"}
 
