@@ -1382,7 +1382,7 @@
               <li>Следи за лимитом слов: «ONE WORD AND/OR A NUMBER».</li>
               <li>Орфография важна: ошибка в слове = неверный ответ.</li>
             </ul>
-            <span class="hint">Здесь текст читает голос браузера: он звучит чуть роботизированно, но темп и формат как на экзамене.</span>
+            <span class="hint">Записи озвучены нейросетевыми голосами Microsoft: темп и формат как на экзамене.</span>
           </div>${official}`;
     if (ielts.tab === "reading") return `
           <div class="card white"><b>Как устроен Reading</b>
@@ -1970,7 +1970,7 @@
         </div>
         ${rec}
         <div class="row" style="margin-top:22px">
-          <button class="btn btn-sun" id="doneP3">Ответила на все</button>
+          <button class="btn btn-sun" id="doneP3">Готово, ответы даны</button>
           <button class="btn btn-ghost" id="newCard">Другая тема</button>
         </div>`;
       $("#doneP3").onclick = () => { ieltsReward("s3:" + ielts.p2, 5, "Part 3 пройден."); ielts.p2 = rndIdx(IELTS.PART2, ielts.p2); speakingView(); };
