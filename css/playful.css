@@ -136,3 +136,6 @@ body {
 /* логотип: в тёмной теме сайта — кремовая версия, без цветной тени */
 .logo-mark { filter: none !important; }
 :root[data-theme="dark"] .logo-mark { content: url("../img/logo-dark.svg"); }
+
+/* меню развёрнуто на ноутбуке — карточка «Привет» уже, питомец чуть меньше */
+@media (min-width: 761px) and (max-width: 1500px) { body:not(.side-mini) .hello { grid-template-columns: 1fr 230px; } body:not(.side-mini) .bigpet { width: 230px; right: 18px; } }

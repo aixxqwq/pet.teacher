@@ -166,7 +166,9 @@ body { background: var(--bg); }
 @media (min-width: 761px) {
   body.side-mini { --side-w: 76px; padding-left: 76px; }
   body.side-mini .side { top: 0; left: 0; bottom: 0; border-radius: 0; padding: 22px 10px 16px; gap: 22px; box-shadow: 0 0 30px -18px rgba(150, 100, 70, .35); }
-  .side-toggle { display: none !important; }
+  .side { top: 0; left: 0; bottom: 0; border-radius: 0; box-shadow: 0 0 30px -18px rgba(150, 100, 70, .35); }   /* развёрнутое меню — тоже вплотную к краю */
+  .side-toggle { width: 30px; height: 30px; border-radius: 9px; background: var(--tint) !important; color: var(--muted); flex: none; }
+  .side-toggle:hover { color: var(--ink); }
   body.side-mini .side .nav { gap: 10px; align-items: center; }
   body.side-mini .side .nav a { width: 44px; height: 44px; padding: 0; border-radius: 12px; color: #B3A398; background: none; }
   body.side-mini .side .nav a:hover { color: var(--blue); background: var(--tint); }

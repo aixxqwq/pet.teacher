@@ -132,8 +132,9 @@
 
   // ---------- боковое меню: свернуть на компьютере, выдвинуть на телефоне ----------
   const SIDE_KEY = "petTeacher.sideMini";
-  // новый дизайн: на компьютере меню всегда узкое — только иконки (как в макете)
-  document.body.classList.add("side-mini");
+  // по умолчанию меню узкое (только иконки, как в макете); кнопка разворачивает его, выбор запоминается
+  try { document.body.classList.toggle("side-mini", localStorage.getItem(SIDE_KEY) !== "0"); } catch (e) { document.body.classList.add("side-mini"); }
+  $("#sideToggle").title = document.body.classList.contains("side-mini") ? "Развернуть меню" : "Свернуть меню";
   $("#sideToggle").onclick = () => {
     const mini = document.body.classList.toggle("side-mini");
     $("#sideToggle").title = mini ? "Развернуть меню" : "Свернуть меню";
