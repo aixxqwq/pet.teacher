@@ -17,16 +17,16 @@ P = ':root[data-theme="dark"]'
 
 TOKENS = f"""{P} {{
   color-scheme: dark;
-  --bg: #120E26;
-  --ink: #ECE9FF;
-  --muted: #A49EC8;
+  --bg: #141927;
+  --ink: #E6EAF5;
+  --muted: #8F97B3;
   --line: rgba(255, 255, 255, .09);
-  --violet: #9C88FF;
+  --violet: #6C8EF0;
   --good: #3DD68C;
   --bad: #FF6B70;
   --grad-soft: linear-gradient(135deg, rgba(123, 97, 255, .28), rgba(255, 126, 182, .22));
-  --glass: rgba(34, 28, 68, .62);
-  --glass-2: rgba(42, 35, 82, .8);
+  --glass: rgba(30, 36, 54, .62);
+  --glass-2: rgba(35, 42, 63, .8);
   --glass-border: rgba(255, 255, 255, .08);
   --shadow: 0 24px 60px -30px rgba(0, 0, 0, .7), 0 2px 6px -2px rgba(0, 0, 0, .4);
 }}
@@ -38,18 +38,18 @@ MANUAL = f"""
 {P} .bg i {{ opacity: .22; }}
 {P} .bg i:nth-child(4) {{ opacity: .12; }}
 {P} .topbar .wrap {{ background: rgba(26, 21, 54, .72); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, .8); }}
-{P} .nav a.active {{ background: #ECE9FF; color: #1A1538; }}
+{P} .nav a.active {{ background: #E6EAF5; color: #1A2033; }}
 {P} .pet-box svg {{ filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .35)); }}
 {P} input::placeholder, {P} textarea::placeholder {{ color: #8A84AE; }}
-{P} select option {{ background: #221C44; color: #ECE9FF; }}
+{P} select option {{ background: #232A3F; color: #E6EAF5; }}
 {P} .cal i.l0 {{ background: rgba(255, 255, 255, .07); }}
 {P} img[src$="logo.svg"] {{ filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .4)); }}
 {P} .side-dim {{ background: rgba(0, 0, 0, .55); }}
-{P} .side .nav a.active {{ background: #ECE9FF; color: #1A1538; }}
+{P} .side .nav a.active {{ background: #E6EAF5; color: #1A2033; }}
 {P} .toast {{ border: 1px solid rgba(255, 255, 255, .12); }}
-{P} .btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger) {{ --bg: #5B45E0; }}
+{P} .btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger) {{ --bg: #4F74D9; }}
 {P} .btn-white {{ --bg: #2A2352; }}
-{P} .btn-ghost {{ --bg: rgba(42, 35, 82, .6); }}
+{P} .btn-ghost {{ --bg: rgba(35, 42, 63, .6); }}
 {P} .btn-ghost:hover {{ --bg: rgba(56, 47, 108, .85); }}
 {P} #recBtn.recording {{ --bg: #431417; }}
 /* белые плашки внутри фиолетовых блоков: текст остаётся тёмным */
@@ -79,8 +79,8 @@ def lum(r, g, b):
 def dark_surface(r, g, b, light=0.17):
     """Светлый пастельный фон -> тёмный фон того же оттенка."""
     h, l, s = colorsys.rgb_to_hls(r, g, b)
-    if s < 0.08:               # белый / серый -> фиолетово-серый
-        h, s = 0.70, 0.35
+    if s < 0.08:               # белый / серый -> сине-графитовый
+        h, s = 0.62, 0.28
     return to_hex(*colorsys.hls_to_rgb(h, light, min(s, 0.55)))
 
 
@@ -106,7 +106,7 @@ def convert(prop, value):
     if not (is_bg or is_text or is_line or is_shadow):
         return None
     if is_bg and value.strip() == "var(--ink)":
-        return "#5B45E0"                              # тёмные кнопки -> насыщенно-фиолетовые
+        return "#4F74D9"                              # тёмные кнопки -> синие
 
     def rep(m):
         c = m.group(0)
@@ -123,11 +123,11 @@ def convert(prop, value):
                     return c                            # белое на тёмном — уже правильно
                 if is_line:
                     return f"rgba(255, 255, 255, {min(.12, a * .15):.2f})"
-                return f"rgba(36, 30, 72, {a:.2f})"
+                return f"rgba(32, 39, 58, {a:.2f})"
             if lum(r, g, b) < .2 and a >= .5 and is_bg:
                 return c                                # тёмная плашка (всплывашка) остаётся тёмной
             if lum(r, g, b) < .2:                       # тёмные (цвет текста) полупрозрачные линии и подложки
-                return f"rgba(236, 233, 255, {a:.2f})" if not is_text else "rgba(236, 233, 255, .85)"
+                return f"rgba(230, 234, 245, {a:.2f})" if not is_text else "rgba(230, 234, 245, .85)"
             return c
         r, g, b = hex_rgb(c)
         L = lum(r, g, b)
@@ -135,14 +135,14 @@ def convert(prop, value):
             return c
         if is_text:
             if L < .45:
-                return light_text(r, g, b) if colorsys.rgb_to_hls(r, g, b)[2] > .1 else "#ECE9FF"
+                return light_text(r, g, b) if colorsys.rgb_to_hls(r, g, b)[2] > .1 else "#E6EAF5"
             return c
         if L > .8:
             if is_line:
                 return "rgba(255, 255, 255, .1)"
             return dark_surface(r, g, b)
         if L < .2 and (is_bg or is_line):
-            return "#3A3170" if is_bg else "rgba(255, 255, 255, .2)"
+            return "#2E3A5E" if is_bg else "rgba(255, 255, 255, .2)"
         return c
 
     new = COLOR.sub(rep, value)

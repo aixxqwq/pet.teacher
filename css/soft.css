@@ -1,0 +1,158 @@
+/* ============================================================
+   Bilim Buddy — дизайн «мягкая панель»
+   Серо-голубой фон, белые карточки с мягкой тенью, синий акцент,
+   цветные иконки-квадратики (красный, жёлтый, зелёный).
+   Файл подключается ПОСЛЕ style.css и dark.css и перекрывает их.
+   ============================================================ */
+
+:root {
+  --bg: #E9EDF6;
+  --ink: #2F3447;
+  --muted: #8A90A6;
+  --line: #E6E9F2;
+  --blue: #4F74D9;
+  --red: #E5484D;
+  --yellow: #F5B700;
+  --green: #3BB273;
+  --violet: #4F74D9;              /* старое имя акцента — теперь синий */
+  --pink: #E5484D;
+  --sky: #4F74D9;
+  --good: #3BB273;
+  --grad: linear-gradient(135deg, #4F74D9 0%, #6A8DEB 100%);
+  --grad-soft: linear-gradient(135deg, rgba(79, 116, 217, .12), rgba(79, 116, 217, .08));
+  --glass: #FFFFFF;
+  --glass-2: #FFFFFF;
+  --glass-border: transparent;
+  --blur: none;
+  --r-lg: 22px;
+  --r-md: 18px;
+  --shadow: 0 10px 30px -18px rgba(60, 80, 140, .35), 0 1px 2px rgba(60, 80, 140, .05);
+  --aurora: linear-gradient(135deg, #4F74D9 0%, #5F82E3 55%, #7A97EC 100%);
+  --aurora-teal: linear-gradient(135deg, #2E9C73 0%, #3BB273 100%);
+  --card-bg: #FFFFFF;
+  --tint: #F3F6FC;
+}
+:root[data-theme="dark"] {
+  --bg: #141927;
+  --ink: #E6EAF5;
+  --muted: #8F97B3;
+  --line: rgba(255, 255, 255, .07);
+  --blue: #6C8EF0;
+  --violet: #6C8EF0;
+  --sky: #6C8EF0;
+  --grad: linear-gradient(135deg, #5277E0 0%, #6C8EF0 100%);
+  --grad-soft: linear-gradient(135deg, rgba(108, 142, 240, .22), rgba(108, 142, 240, .14));
+  --glass: #1E2436;
+  --glass-2: #232A3F;
+  --glass-border: rgba(255, 255, 255, .04);
+  --shadow: 0 14px 34px -20px rgba(0, 0, 0, .7);
+  --aurora: linear-gradient(135deg, #2D4590 0%, #3A57B0 60%, #4A67C2 100%);
+  --aurora-teal: linear-gradient(135deg, #1D5E48 0%, #23744F 100%);
+  --card-bg: #1E2436;
+  --tint: #252C42;
+}
+
+body { background: var(--bg); }
+.bg { display: none !important; }                     /* без размытых пятен */
+::selection { background: rgba(79, 116, 217, .22); }
+
+/* стекло больше не размываем — просто белые карточки */
+.card, .topic, .pick, .pill, .q-item, .side-score div, .today div, .quiz-card, .opt, .lvl-chip, .input, .empty, .num {
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.card, .num, .empty, .quiz-card { box-shadow: var(--shadow); }
+.topic, .pick, .pill, .q-item, .opt { box-shadow: 0 6px 18px -14px rgba(60, 80, 140, .35); }
+
+/* ---------- боковое меню: белая панель, синий активный пункт ---------- */
+.side {
+  background: var(--card-bg); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none;
+  box-shadow: 0 10px 30px -20px rgba(60, 80, 140, .35);
+}
+.side .nav a { color: #8E97B4; }
+.side .nav a:hover { color: var(--blue); background: var(--tint); }
+.side .nav a.active { color: var(--blue); background: rgba(79, 116, 217, .1); font-weight: 600; }
+.side .nav a.active::after { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: var(--blue); }
+.logo-mark { filter: drop-shadow(0 4px 8px rgba(79, 116, 217, .25)); }
+.mtop { background: var(--card-bg) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+
+/* ---------- кнопки ---------- */
+.btn { --bg: var(--blue); }
+.btn:hover { box-shadow: 0 12px 22px -12px rgba(79, 116, 217, .8); }
+.btn-sun { background: var(--blue); animation: none; }
+.btn-sun:hover { box-shadow: 0 12px 22px -12px rgba(79, 116, 217, .8); }
+.btn-white { --bg: #fff; --fg: var(--ink); }
+.btn-ghost { --bg: var(--card-bg); --fg: var(--ink); border: 1px solid var(--line); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.btn-ghost:hover { --bg: var(--tint); }
+.chip { background: var(--tint); border-color: transparent; }
+.chip.plum { background: var(--blue); }
+.input { background: var(--card-bg); border: 1px solid var(--line); }
+.input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(79, 116, 217, .15); }
+
+/* ---------- шапки страниц: белая карточка, питомец «выглядывает» ---------- */
+.hero::before, .hero::after, .page-head::before, .page-head::after,
+.focus-panel::before, .focus-panel::after, .side-pet::before { display: none; }
+.hero, .page-head { box-shadow: var(--shadow); }
+.focus-panel, .side-pet { box-shadow: 0 16px 34px -20px rgba(79, 116, 217, .7); }
+
+:root:not([data-theme="dark"]) .hero,
+:root:not([data-theme="dark"]) .page-head { background: #fff; color: var(--ink); }
+:root[data-theme="dark"] .hero,
+:root[data-theme="dark"] .page-head { background: var(--card-bg); color: var(--ink); }
+
+.hero h1 { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--ink); font-weight: 500; }
+.hero .eyebrow, .page-head .eyebrow { color: var(--muted); }
+.hero .eyebrow::before, .page-head .eyebrow::before { background: var(--blue); }
+.hero-sub, .page-head p { color: var(--muted); }
+.hero-pet .halo { background: radial-gradient(circle, rgba(79, 116, 217, .14), rgba(79, 116, 217, 0) 65%); }
+.hero .bubble, .page-head .bubble { background: var(--tint); color: var(--ink); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.hero .btn-white, .page-head .btn-white, .hero-actions .btn-sun { --bg: var(--blue); --fg: #fff; background: var(--blue); color: #fff; }
+.hero .btn-line, .page-head .btn-line { --bg: var(--card-bg); --fg: var(--ink); border: 1px solid var(--line); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.hero .btn-line:hover, .page-head .btn-line:hover { --bg: var(--tint); }
+.hero .chip, .page-head .chip { background: var(--tint); color: var(--ink); }
+.float-card { background: var(--card-bg); color: var(--ink); border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: 0 14px 30px -16px rgba(60, 80, 140, .45); }
+.float-card .muted { color: var(--muted); }
+.float-card .mini-xp { background: var(--line); }
+.float-card .mini-xp span { background: var(--blue); }
+.page-head .pet-box, .hero-pet .pet-box { filter: drop-shadow(0 14px 18px rgba(60, 80, 140, .22)); }
+
+/* ---------- цифры и иконки ---------- */
+.stat-ico { background: transparent; color: var(--blue); border: 2.2px solid currentColor; box-shadow: none; border-radius: 11px; }
+.stats3 .card:nth-child(2) .stat-ico { background: transparent; color: var(--red); }
+.stats3 .card:nth-child(3) .stat-ico { background: transparent; color: var(--yellow); }
+.num b, .ai-overall b { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: var(--ink); font-weight: 500; }
+.segs i { background: var(--line); }
+.segs i.on { background: var(--blue); animation: segIn .5s var(--ease) both; animation-delay: calc(var(--k) * 40ms); }
+.segs.low i.on { background: var(--red); }
+.action-card .art { background: var(--tint) !important; }
+.action-card:nth-child(2) .art { background: #FFF6DE !important; }
+.action-card:nth-child(3) .art { background: #FDEDEE !important; }
+:root[data-theme="dark"] .action-card:nth-child(2) .art { background: #2F2A1E !important; }
+:root[data-theme="dark"] .action-card:nth-child(3) .art { background: #33212A !important; }
+.land-ic { background: var(--tint); color: var(--blue); border-radius: 12px; }
+.land-f:nth-child(4n+2) > .land-ic { color: var(--red); background: #FDEDEE; }
+.land-f:nth-child(4n+3) > .land-ic { color: #C99400; background: #FFF6DE; }
+.land-f:nth-child(4n+4) > .land-ic { color: var(--green); background: #E7F6EE; }
+:root[data-theme="dark"] .land-ic { background: var(--tint) !important; }
+.step-n { background: var(--blue); }
+.opt .l { background: var(--tint); color: var(--blue); }
+.opt:hover:not(:disabled) { box-shadow: 0 10px 22px -14px rgba(79, 116, 217, .7); }
+.pick.sel { box-shadow: 0 20px 40px -22px rgba(79, 116, 217, .8); }
+
+/* ---------- тёмная тема: подправляем фиолетовые места из dark.css ---------- */
+:root[data-theme="dark"] .side .nav a.active { background: rgba(108, 142, 240, .16); color: var(--blue); }
+:root[data-theme="dark"] .side .nav a:hover { background: var(--tint); }
+:root[data-theme="dark"] .chip { background: var(--tint); border-color: transparent; }
+:root[data-theme="dark"] .chip.plum { background: var(--blue); }
+:root[data-theme="dark"] .input { background: var(--tint); border-color: transparent; }
+:root[data-theme="dark"] .input:focus { background: #20263A; box-shadow: 0 0 0 4px rgba(108, 142, 240, .18); }
+:root[data-theme="dark"] .btn-white { --bg: #fff; --fg: #2F3447; }
+:root[data-theme="dark"] .hero .btn-white, :root[data-theme="dark"] .page-head .btn-white { --bg: var(--blue); --fg: #fff; }
+
+/* выбранные кнопки-переключатели и сообщения пользователя — синие, как в макете */
+.pill.sel, .lr-seg input:checked + span { background: var(--blue); border-color: var(--blue); color: #fff; }
+.modes.light button.sel, .msg.user, .lr-n { background: var(--blue); color: #fff; }
+:root[data-theme="dark"] .pill.sel, :root[data-theme="dark"] .modes.light button.sel, :root[data-theme="dark"] .lr-n,
+:root[data-theme="dark"] .lr-seg input:checked + span, :root[data-theme="dark"] .msg.user { background: var(--blue); color: #fff; }
+:root[data-theme="dark"] .float-card { background: var(--tint); }
+.coins-big { background: var(--tint) !important; color: var(--ink) !important; border: 0 !important; }
+@media (max-width: 760px) { .shop-head .pet-box { width: 96px; } }
