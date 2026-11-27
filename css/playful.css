@@ -90,6 +90,8 @@ body.side-mini .side .nav a.active::after, .side .nav a.active::after { backgrou
   text-shadow: 220px 210px 0 var(--rose); animation: twinkle 3.6s ease-in-out infinite;
 }
 .hello { overflow: hidden; }
+/* звёздочки и сердечки убраны по просьбе — остаются только цветные пятна */
+.page-head::after, .hello::after { display: none !important; content: none !important; }
 @keyframes twinkle { 50% { opacity: .45; transform: translateY(-3px); } }
 
 /* ---------- карточки: мягче и теплее ---------- */
