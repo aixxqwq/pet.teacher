@@ -360,7 +360,7 @@
     let s = "";
     const busyHead = ["sleep", "play", "proud"].includes(pose);     // у этих поз своя шапка/наушники/корона
     const it = (slot) => ITEMS[items[slot]];
-    if (it("neck")) s += it("neck").draw(sp);
+    if (it("neck") && pose !== "eat" && pose !== "boba") s += it("neck").draw(sp);    // не поверх печенья и стакана
     if (it("face") && pose !== "read" && pose !== "sleep") s += it("face").draw(sp);
     if (it("hat") && !busyHead) s += it("hat").draw(sp);
     return s;
@@ -439,8 +439,26 @@
     }
   }
 
-  // ---------- собираем питомца ----------
+  // ---------- питомец-стикер (нарисованные картинки img/pets/<питомец>-<поза>.webp) ----------
+  // Картинки 320×320, питомец стоит внизу по центру. Одёжки из магазина рисуем поверх,
+  // поэтому для каждой картинки задана примерная «геометрия головы» (IMG_GEO).
+  const IMG_V = 1;                       // поменяй, если перерисуешь картинки (сброс кэша)
+  const POSES = ["idle", "happy", "sad", "eat", "read", "sleep", "play", "focus", "proud", "boba"];
+  const IMG_GEO = { headCy: 100, headRx: 60, headRy: 46, top: 62, eyeY: 102, eyeDX: 26 };
   function petSVG(key, pose = "idle", opts = {}) {
+    if (!SPECIES[key]) key = "sheep";
+    if (!POSES.includes(pose)) pose = "idle";
+    const sp = Object.assign({}, SPECIES[key], IMG_GEO);
+    const items = opts.wear || (opts.wear !== false && WEAR.animal === key ? WEAR.items : null);
+    const wear = items && pose !== "sleep" ? wearSVG(key, pose, items, sp) : "";    // во сне под одеялом — без одёжек
+    const src = `img/pets/${key}-${pose}.webp?v=${IMG_V}`;
+    return `<svg class="pet pet-img pet-${key} pose-${pose} merged" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
+      `<g class="p-all"><image href="${src}" x="0" y="0" width="240" height="240"/>` +
+      (wear ? `<g class="p-wear">${wear}</g>` : "") + `</g></svg>`;
+  }
+
+  // ---------- старый питомец, нарисованный кодом (запасной вариант) ----------
+  function drawnSVG(key, pose = "idle", opts = {}) {
     const sp = SPECIES[key] || SPECIES.sheep;
     const fx = opts.fx !== false;
     let head = behindHead(sp, key) + headShape(sp, key) + face(sp, key, pose);
@@ -483,5 +501,5 @@
     document.body.prepend(div.firstElementChild);
   }
 
-  window.Pets = { SPECIES, petSVG, installDefs, ITEMS, setWear };
+  window.Pets = { SPECIES, petSVG, drawnSVG, installDefs, ITEMS, setWear };
 })();

@@ -5,3 +5,7 @@ __pycache__/
 # секреты и база данных сервера
 server/.env
 server/data/
+
+# черновики и исходные листы стикеров (локально)
+concepts/
+img/pets/src/
