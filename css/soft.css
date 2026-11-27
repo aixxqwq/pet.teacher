@@ -274,8 +274,7 @@ body { background: var(--bg); }
 .stat4 p { max-width: 120px; }
 @media (max-width: 760px) { .page-head .pet-box { width: 100px; } }
 
-/* большие питомцы в шапках страниц: стоят на дне карточки, голова выглядывает за верхний край */
+/* питомцы в шапках страниц — чуть крупнее, ровно по центру справа, внутри блока */
 @media (min-width: 761px) {
-  .page-head { overflow: visible; margin-top: 64px; grid-template-columns: minmax(0, 1fr) 300px; }
-  .page-head .pet-box { position: absolute; right: 48px; bottom: 10px; width: 270px; margin: 0; z-index: 2; }
+  .page-head .pet-box { width: 210px; }
 }
