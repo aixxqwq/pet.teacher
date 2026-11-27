@@ -143,3 +143,4 @@ body {
 /* логотип в меню — поменьше */
 .side .logo-mark { width: 30px; height: 30px; }
 .side .logo { gap: 9px; }
+.side .logo span { position: relative; top: 3px; }   /* текст на одной линии с буквами B, а не с листиками */
