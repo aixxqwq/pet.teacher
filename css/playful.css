@@ -52,8 +52,14 @@ body.side-mini .side .nav a.active::after, .side .nav a.active::after { backgrou
 .topic-grid .topic:nth-child(6n+6) { --c: var(--rose); }
 .topic .code { color: var(--c); }
 .topic::before { background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #FF7A9A)); }
-.topic.sel .code { color: #fff; }
-.topic.sel { box-shadow: 0 18px 34px -20px var(--c); }
+/* выбранная тема: без яркой заливки — тонкая рамка и лёгкий оттенок своего цвета */
+.topic.sel::before { opacity: 1; background: color-mix(in srgb, var(--c) 11%, transparent); }
+.topic.sel { color: var(--ink); box-shadow: inset 0 0 0 2px var(--c), 0 12px 26px -20px var(--c); }
+.topic.sel .code { color: var(--c); }
+.topic.sel .t-about { color: var(--muted); }
+.topic.sel .t-bar { background: color-mix(in srgb, var(--c) 18%, transparent); }
+.topic.sel .t-bar span { background: var(--c); }
+.topic.sel .t-count, .topic.sel .chip { background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--ink); }
 
 /* ---------- заголовки разделов: цветная «капелька» снизу ---------- */
 .section-head h2::after, .notes-h b::after {
@@ -125,3 +131,4 @@ body {
   .hello::before { width: 150px; height: 140px; right: 0; top: 70px; }
 }
 @media (prefers-reduced-motion: reduce) { .page-head::after, .hello::after { animation: none; } }
+:root[data-theme="dark"] .topic.sel .t-bar span { background: var(--c); }
