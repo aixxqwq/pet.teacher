@@ -112,6 +112,16 @@
       acc.onclick = (e) => { if (!Api.auth()) { e.preventDefault(); accMode = "login"; go("#/account"); } };
       reg.onclick = (e) => { e.preventDefault(); accMode = "register"; go("#/account"); };
     }
+    // строка сверху (компьютер): дата, колокольчик с карточками, питомец
+    const now = new Date();
+    $("#dtopDate").textContent = `${now.getDate()} ${MONTHS_GEN[now.getMonth()]}, ${now.getFullYear()}`;
+    $("#dtopBell").textContent = dueN || "";
+    $("#dtop").classList.toggle("nopet", !pet);
+    if (pet) {
+      $("#dtopAva").innerHTML = Pets.petSVG(pet.animal, "idle", { fx: false });
+      $("#dtopName").textContent = pet.name;
+      $("#dtopSub").textContent = `Уровень ${Game.level(pet)} · 🪙 ${pet.coins || 0}`;
+    }
     const chip = $("#lvlChip");
     if (!pet) { chip.style.display = "none"; return; }
     chip.style.display = "";
@@ -122,7 +132,8 @@
 
   // ---------- боковое меню: свернуть на компьютере, выдвинуть на телефоне ----------
   const SIDE_KEY = "petTeacher.sideMini";
-  try { document.body.classList.toggle("side-mini", localStorage.getItem(SIDE_KEY) === "1"); } catch (e) {}
+  // новый дизайн: на компьютере меню всегда узкое — только иконки (как в макете)
+  document.body.classList.add("side-mini");
   $("#sideToggle").onclick = () => {
     const mini = document.body.classList.toggle("side-mini");
     $("#sideToggle").title = mini ? "Развернуть меню" : "Свернуть меню";
@@ -159,13 +170,38 @@
   function daysTogether() {
     return Math.max(1, Math.floor((Date.now() - new Date(pet.born).getTime()) / 86400000) + 1);
   }
+  function weekAccuracy() {
+    const all = Game.allStats(), d = new Date();
+    let a = 0, c = 0;
+    for (let i = 0; i < 7; i++) { const x = all[Game.isoDay(d)]; if (x) { a += x.answers || 0; c += x.correct || 0; } d.setDate(d.getDate() - 1); }
+    return a ? Math.round((c / a) * 100) : 0;
+  }
+  const ICO = {
+    answers: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="m8 12.5 2.5 2.5L16 9.5"/></svg>',
+    acc: '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+    cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+    lvl: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="16" height="16" rx="3"/><path d="m7 15 3-3 2 2 4-5"/></svg>',
+  };
   function numbers() {
-    const d = daysTogether(), m = Game.totalFocusMinutes();
-    return `
-      <div class="num"><b data-count="${pet.correct}">${pet.correct}</b><span>${plural(pet.correct, "верный ответ", "верных ответа", "верных ответов")}</span></div>
-      <div class="num"><b data-count="${pet.best_streak}">${pet.best_streak}</b><span>лучшая серия подряд</span></div>
-      <div class="num"><b data-count="${m}">${m}</b><span>${plural(m, "минута", "минуты", "минут")} фокуса</span></div>
-      <div class="num"><b data-count="${d}">${d}</b><span>${plural(d, "день", "дня", "дней")} вместе</span></div>`;
+    const acc = weekAccuracy(), st = Game.dayStreak(), lv = Game.level(pet);
+    const card = (cls, ico, name, val, count) => `<div class="card stat4"><span class="ico ${cls}">${ico}</span><p>${name}</p><b${count != null ? ` data-count="${count}"` : ""}>${val}</b></div>`;
+    return card("red", ICO.answers, "Верных ответов", pet.correct, pet.correct) +
+      card("blue", ICO.acc, "Точность за неделю", acc + "%") +
+      card("yellow", ICO.cal, "Серия дней подряд", `${st} ${plural(st, "день", "дня", "дней")}`) +
+      card("green", ICO.lvl, "Уровень питомца", lv, lv);
+  }
+  /** Короткие напоминания справа от приветствия (как в макете). */
+  function reminders() {
+    const items = [];
+    const st = Game.dayStreak(), due = Cards.due().length;
+    items.push(st ? ["y", "🔥", `Серия ${st} ${plural(st, "день", "дня", "дней")}! Сделай хотя бы один пункт плана сегодня.`, "plan"]
+      : ["y", "🔥", "Начни серию: выполни сегодня один пункт плана.", "plan"]);
+    items.push(due ? ["r", String(due), `${due} ${plural(due, "карточка ждёт", "карточки ждут", "карточек ждут")} повторения`, "#/cards"]
+      : ["r", "✓", "Все карточки повторены. Добавь новые слова.", "#/cards"]);
+    const low = STATS.find((x) => pet[x.key] <= 3);
+    items.push(low ? ["b", "!", `${low.name} питомца на низком уровне<br><small>${low.hint}</small>`, low.key === "energy" ? "#/" : "#/learn"]
+      : ["b", "♪", "Listening с живыми голосами<br><small>Попробуй австралийский акцент</small>", "#/ielts"]);
+    return items.map(([c, ic, t, href]) => `<a class="card note" href="${href === "plan" ? "#/" : href}"${href === "plan" ? ' data-plan="1"' : ""}><span class="sq ${c}">${ic}</span><p>${t}</p><span class="arr">›</span></a>`).join("");
   }
 
   // ---------- календарь активности ----------
@@ -298,27 +334,39 @@
 
   function home() {
     const sp = Pets.SPECIES[pet.animal];
+    const xpPct = (Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100;
+    const now = new Date();
     view.innerHTML = `
-      <section class="hero reveal">
-        <div class="hero-text">
-          <span class="eyebrow" style="--i:0">Твой питомец-учитель</span>
-          <h1 style="--i:1">${esc(pet.name)}</h1>
-          <p class="hero-sub" style="--i:2">${sp.title} · ${Game.stage(pet)} · ${sp.trait}</p>
-          <div class="bubble in" id="mood" style="--i:3">${Game.mood(pet)}</div>
-          <div class="hero-actions" style="--i:4">
-            <a class="btn btn-sun" href="#/learn">Начать учиться <span class="arr">${I.arrow}</span></a>
-            <a class="btn btn-line" href="#/focus">Фокус-таймер</a>
+      <div class="headline reveal">
+        <h1 style="--i:0">Главная</h1>
+        <div class="acts" style="--i:1"><span class="sel">Сегодня, ${now.getDate()} ${MONTHS_GEN[now.getMonth()]}</span>
+          <a class="btn btn-sm" href="#/learn"><span class="plus">＋</span> Начать учиться</a></div>
+      </div>
+      <section class="hero-row reveal">
+        <div class="card hello" style="--i:1">
+          <div class="hello-text">
+            <h2>Привет! 👋</h2>
+            <p class="muted">Я ${esc(pet.name)} — ${sp.title.toLowerCase()}, ${Game.stage(pet)}. Чем займёмся сегодня?</p>
+            <div class="bubble in" id="mood">${Game.mood(pet)}</div>
+            <ul class="quick">
+              <li><a href="#/learn"><i class="c-blue">→</i>Продолжить учёбу</a></li>
+              <li><a href="#/cards"><i class="c-yellow">→</i>Повторить карточки</a></li>
+              <li><a href="#/ielts"><i class="c-red">→</i><u>Пробный IELTS</u></a></li>
+              <li><a href="#/tutor"><i class="c-blue">→</i>Спросить учителя</a></li>
+            </ul>
+            <div class="hello-lvl">Уровень <b id="fcLevel">${Game.level(pet)}</b>
+              <span class="mini-xp"><span id="fcXp" style="width:${xpPct}%"></span></span>
+              <span class="muted" id="fcXpText">${Game.xpInLevel(pet)} / ${Game.XP_PER_LEVEL} XP</span>
+              <span class="muted">· серия ответов <b id="fcStreak">${pet.streak}</b></span></div>
           </div>
+          <div class="bigpet">${petBox(Game.feeling(pet), "", "heroPet")}</div>
         </div>
-        <div class="hero-pet" style="--i:2">
-          <div class="halo"></div>
-          ${petBox(Game.feeling(pet), "", "heroPet")}
-          <div class="float-card f1">Серия ответов<b id="fcStreak">${pet.streak}</b></div>
-          <div class="float-card f2">Уровень <b id="fcLevel">${Game.level(pet)}</b>
-            <span class="mini-xp"><span id="fcXp" style="width:${(Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100}%"></span></span>
-            <span class="muted" id="fcXpText">${Game.xpInLevel(pet)} / ${Game.XP_PER_LEVEL} XP</span></div>
+        <div class="notes" style="--i:2">
+          <div class="notes-h"><b><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg> Напоминания</b></div>
+          ${reminders()}
         </div>
       </section>
+      <section class="stats4 reveal" id="numbers">${numbers()}</section>
 
       <section class="section reveal" id="planBox">${planCard()}</section>
 
@@ -366,10 +414,6 @@
         </div>
       </section>
 
-      <section class="section">
-        <div class="numbers reveal" id="numbers">${numbers()}</div>
-      </section>
-
       <section class="section reveal" id="calendar">${activityCalendar()}</section>
 
       ${Api.auth() ? "" : `<section class="section">
@@ -388,6 +432,7 @@
 
     countUp($$("#numbers b"));
     bindCalendar();
+    $$(".note[data-plan]").forEach((a) => a.onclick = (e) => { e.preventDefault(); $("#planBox").scrollIntoView({ behavior: "smooth", block: "center" }); });
 
     const refresh = () => {
       $("#statCards").innerHTML = statCards();

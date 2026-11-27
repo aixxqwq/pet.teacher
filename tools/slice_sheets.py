@@ -1,13 +1,13 @@
 """
 Режет листы стикеров (img/pets/src/<питомец>.jpg, 2 ряда × 5) на отдельные позы
-с прозрачным фоном: img/pets/<питомец>-<поза>.webp
+с прозрачным фоном и без белой обводки-наклейки: img/pets/<питомец>-<поза>.webp
 Все картинки одного размера (холст W×H), питомец стоит внизу по центру —
 поэтому на сайте он не «прыгает» по размеру при смене позы.
 Запуск:  python tools/slice_sheets.py
 """
 import os
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "img", "pets", "src")
@@ -15,7 +15,8 @@ OUT = os.path.join(ROOT, "img", "pets")
 # порядок поз на листе (слева направо, сверху вниз)
 POSES = ["idle", "happy", "sad", "eat", "read", "sleep", "play", "focus", "proud", "boba"]
 PETS = ["hamster", "sheep", "capybara", "panda", "duck", "hedgehog"]
-W, H = 320, 320     # холст готовой картинки, px
+SCALE = 2           # увеличение исходника
+W, H = 620, 620     # холст готовой картинки, px
 
 
 def stickers(im):
@@ -52,16 +53,22 @@ def stickers(im):
 
 
 def cutout(im):
-    """Белый фон вокруг → прозрачный, своя ровная белая обводка."""
+    """Убираем всё белое и серое СНАРУЖИ тёмного контура персонажа (фон + белую «наклейку» + серый ободок).
+    Внутрь контура заливка не проходит, поэтому светлый животик и мордочка остаются."""
     w, h = im.size
     big = Image.new("RGB", (w + 20, h + 20), (255, 255, 255))
     big.paste(im, (10, 10))
     im = big
-    light = Image.eval(im.convert("L"), lambda v: 255 if v >= 238 else 0)
-    ImageDraw.floodfill(light, (0, 0), 128)
-    obj = Image.eval(light, lambda v: 0 if v == 128 else 255)
+    r, g, b = im.split()
+    mx = ImageChops.lighter(ImageChops.lighter(r, g), b)
+    mn = ImageChops.darker(ImageChops.darker(r, g), b)
+    light = Image.eval(im.convert("L"), lambda v: 255 if v >= 190 else 0)
+    grey = Image.eval(ImageChops.subtract(mx, mn), lambda v: 255 if v <= 48 else 0)
+    passable = ImageChops.multiply(light, grey)            # светлое и почти бесцветное — фон/обводка
+    ImageDraw.floodfill(passable, (0, 0), 128)
+    obj = Image.eval(passable, lambda v: 0 if v == 128 else 255)
     obj = obj.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(3))
-    # убираем крошечные отдельные точки (мусор сжатия), искры и ноты — крупнее, они остаются
+    # убираем крошечные отдельные точки (мусор сжатия); искры, ноты и сердечки крупнее — остаются
     px = obj.load()
     for y in range(0, obj.height, 2):
         for x in range(0, obj.width, 2):
@@ -71,13 +78,18 @@ def cutout(im):
                 ImageDraw.floodfill(obj, (x, y), 254 if n >= 60 else 0)
                 px = obj.load()
     obj = Image.eval(obj, lambda v: 255 if v == 254 else 0)
-    pad = 6
-    sticker = obj.filter(ImageFilter.MaxFilter(pad * 2 + 1)).filter(ImageFilter.GaussianBlur(1.1))
-    white = Image.new("RGB", im.size, (255, 255, 255))
-    rgb = Image.composite(im, white, obj.filter(ImageFilter.GaussianBlur(0.7)))
-    rgba = rgb.convert("RGBA")
-    rgba.putalpha(sticker)
-    return rgba.crop(sticker.getbbox())
+    alpha = obj.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.6))   # без светлой бахромы
+    # под прозрачными местами — цвет контура, чтобы при увеличении края не светлели
+    rgb = Image.composite(im, Image.new("RGB", im.size, (91, 67, 54)), obj)
+    box = obj.getbbox()
+    rgb, alpha = rgb.crop(box), alpha.crop(box)
+    # в 2 раза больше и чуть резче
+    size = (rgb.width * SCALE, rgb.height * SCALE)
+    rgb = rgb.resize(size, Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.8, percent=70, threshold=2))
+    alpha = alpha.resize(size, Image.LANCZOS)
+    out = rgb.convert("RGBA")
+    out.putalpha(alpha)
+    return out
 
 
 if __name__ == "__main__":
@@ -95,6 +107,6 @@ if __name__ == "__main__":
                 part = part.resize((round(part.width * k), round(part.height * k)), Image.LANCZOS)
             canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
             canvas.paste(part, ((W - part.width) // 2, H - part.height), part)
-            canvas.save(os.path.join(OUT, f"{pet}-{pose}.webp"), quality=86, method=6)
+            canvas.save(os.path.join(OUT, f"{pet}-{pose}.webp"), quality=88, method=6)
             sizes.append(part.size)
         print("ok", pet, sizes)
