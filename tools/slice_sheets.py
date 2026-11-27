@@ -21,6 +21,7 @@ POSES = ["idle", "happy", "sad", "eat", "read", "sleep", "play", "focus", "proud
 PETS = ["hamster", "sheep", "capybara", "panda", "duck", "hedgehog"]
 SCALE = 3           # увеличение исходника
 PAD = 6             # поля холста (в пикселях исходника)
+TILT = {"focus": -4}  # поворот позы в градусах: у ноутбука стол на листе наклонён — выравниваем
 
 
 def stickers(im):
@@ -131,7 +132,13 @@ if __name__ == "__main__":
             print("!!", pet, "нашлось стикеров:", len(boxes), boxes)
             continue
         for pose, (x0, y0, x1, y1) in zip(POSES, boxes):
-            parts[(pet, pose)] = cutout(sheet.crop((max(0, x0 - 4), max(0, y0 - 4), x1 + 4, y1 + 4)))
+            rgb, obj = cutout(sheet.crop((max(0, x0 - 4), max(0, y0 - 4), x1 + 4, y1 + 4)))
+            if pose in TILT:   # выравниваем наклонённый стол (по часовой стрелке)
+                rgb = rgb.rotate(TILT[pose], Image.BICUBIC, expand=True, fillcolor=(255, 255, 255))
+                obj = obj.rotate(TILT[pose], Image.BILINEAR, expand=True).point(lambda v: 255 if v >= 128 else 0)
+                box = obj.getbbox()
+                rgb, obj = rgb.crop(box), obj.crop(box)
+            parts[(pet, pose)] = (rgb, obj)
         print("ok", pet)
     # общий квадратный холст по самому большому стикеру
     side = max(max(r.width, r.height) for r, _ in parts.values()) + PAD * 2

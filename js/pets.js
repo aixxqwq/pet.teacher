@@ -443,7 +443,7 @@
   // Картинки квадратные, питомец по центру, ноги на одной линии. Одёжки из магазина рисуем поверх,
   // поэтому задана примерная «геометрия головы» (IMG_GEO) — в координатах прежнего холста (OLD),
   // а сдвиг/масштаб под нынешний холст (IMG_CANVAS — печатает tools/slice_sheets.py) считается ниже.
-  const IMG_V = 4;                       // поменяй, если перерисуешь картинки (сброс кэша)
+  const IMG_V = 5;                       // поменяй, если перерисуешь картинки (сброс кэша)
   const POSES = ["idle", "happy", "sad", "eat", "read", "sleep", "play", "focus", "proud", "boba"];
   const IMG_GEO = { headCy: 100, headRx: 60, headRy: 66, top: 65, eyeY: 112, eyeDX: 26 };
   const OLD = { side: 310, bottom: 310 }, IMG_CANVAS = { side: 279, bottom: 273 };
