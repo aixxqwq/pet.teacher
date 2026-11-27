@@ -144,3 +144,7 @@ body {
 .side .logo-mark { width: 30px; height: 30px; }
 .side .logo { gap: 9px; }
 .side .logo span { position: relative; top: 3px; }   /* текст на одной линии с буквами B, а не с листиками */
+
+/* поля эссе растут сами — без полосы прокрутки внутри */
+textarea.essay, textarea.w-text, textarea.sp-text, textarea.notes { overflow: hidden; resize: none; }
+textarea.essay, textarea.w-text { min-height: 220px; }

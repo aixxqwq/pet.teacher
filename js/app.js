@@ -147,6 +147,20 @@
   $$("#side a").forEach((a) => a.addEventListener("click", closeMenu));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeMenu(); });
 
+  // ---------- поля для эссе и ответов растут вместе с текстом (не нужно листать внутри поля) ----------
+  const GROW = "textarea.essay, textarea.w-text, textarea.sp-text, textarea.notes";
+  function autoGrow(t) {
+    if (!t.offsetParent) return;      // скрытое поле — размер посчитаем, когда покажется
+    const y = window.scrollY;
+    t.style.height = "auto";
+    t.style.height = t.scrollHeight + 2 + "px";
+    window.scrollTo(0, y);            // страница не прыгает, пока поле меняет высоту
+  }
+  document.addEventListener("input", (e) => { if (e.target.matches && e.target.matches(GROW)) autoGrow(e.target); });
+  // когда открывается страница с уже сохранённым черновиком — сразу показываем его целиком
+  new MutationObserver(() => $$(GROW).forEach(autoGrow)).observe($("#view"), { childList: true });
+  window.addEventListener("resize", () => $$(GROW).forEach(autoGrow));
+
   // ============================================================
   //  Главная: питомец, шкалы, действия
   // ============================================================
