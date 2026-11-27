@@ -139,3 +139,7 @@ body {
 
 /* меню развёрнуто на ноутбуке — карточка «Привет» уже, питомец чуть меньше */
 @media (min-width: 761px) and (max-width: 1500px) { body:not(.side-mini) .hello { grid-template-columns: 1fr 230px; } body:not(.side-mini) .bigpet { width: 230px; right: 18px; } }
+
+/* логотип в меню — поменьше */
+.side .logo-mark { width: 30px; height: 30px; }
+.side .logo { gap: 9px; }
