@@ -132,3 +132,7 @@ body {
 }
 @media (prefers-reduced-motion: reduce) { .page-head::after, .hello::after { animation: none; } }
 :root[data-theme="dark"] .topic.sel .t-bar span { background: var(--c); }
+
+/* логотип: в тёмной теме сайта — кремовая версия, без цветной тени */
+.logo-mark { filter: none !important; }
+:root[data-theme="dark"] .logo-mark { content: url("../img/logo-dark.svg"); }
