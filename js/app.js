@@ -335,17 +335,12 @@
   function home() {
     const sp = Pets.SPECIES[pet.animal];
     const xpPct = (Game.xpInLevel(pet) / Game.XP_PER_LEVEL) * 100;
-    const now = new Date();
+    const user = Api.auth() ? Api.auth().username : "";   // имя из аккаунта; у гостя — просто «Привет!»
     view.innerHTML = `
-      <div class="headline reveal">
-        <h1 style="--i:0">Главная</h1>
-        <div class="acts" style="--i:1"><span class="sel">Сегодня, ${now.getDate()} ${MONTHS_GEN[now.getMonth()]}</span>
-          <a class="btn btn-sm" href="#/learn"><span class="plus">＋</span> Начать учиться</a></div>
-      </div>
       <section class="hero-row reveal">
         <div class="card hello" style="--i:1">
           <div class="hello-text">
-            <h2>Привет! 👋</h2>
+            <h2>${user ? `Привет, ${esc(user)}!` : "Привет!"}</h2>
             <p class="muted">Я ${esc(pet.name)} — ${sp.title.toLowerCase()}, ${Game.stage(pet)}. Чем займёмся сегодня?</p>
             <div class="bubble in" id="mood">${Game.mood(pet)}</div>
             <ul class="quick">

@@ -219,7 +219,7 @@ body { background: var(--bg); }
 .headline .plus { display: inline-grid; place-items: center; width: 16px; height: 16px; border: 1.5px solid #fff; border-radius: 4px; font-size: 11px; }
 
 .hero-row { display: grid; grid-template-columns: 1.65fr 1fr; gap: 28px; align-items: start; }
-.hello { position: relative; padding: 40px 40px 32px; display: grid; grid-template-columns: 1fr 250px; min-height: 250px; margin-top: 56px; overflow: visible; }
+.hello { position: relative; padding: 40px 40px 32px; display: grid; grid-template-columns: 1fr 300px; min-height: 300px; margin-top: 18px; overflow: visible; }
 .hello:hover { transform: none; }
 .hello h2 { font-size: 40px; font-weight: 500; letter-spacing: -0.02em; }
 .hello-text > .muted { margin: 10px 0 14px; font-size: 15px; }
@@ -233,7 +233,7 @@ body { background: var(--bg); }
 .hello-lvl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 22px; font-size: 13px; }
 .hello-lvl .mini-xp { width: 90px; height: 6px; background: var(--line); }
 .hello-lvl .mini-xp span { background: var(--blue); }
-.bigpet { position: absolute; right: 16px; top: -96px; width: 280px; }
+.bigpet { position: absolute; right: 14px; bottom: -6px; width: 350px; }   /* сидит на дне карточки, голова чуть выглядывает */
 .bigpet .pet-box { width: 100%; }
 
 .notes { display: grid; gap: 14px; }
@@ -256,7 +256,7 @@ body { background: var(--bg); }
 
 @media (max-width: 1100px) {
   .hero-row { grid-template-columns: 1fr; }
-  .hello { margin-top: 30px; }
+  .hello { margin-top: 18px; }
 }
 @media (max-width: 760px) {
   .headline { margin: 6px 0 12px; }
@@ -264,7 +264,7 @@ body { background: var(--bg); }
   .hello { grid-template-columns: 1fr; padding: 22px 18px 20px; margin-top: 10px; min-height: 0; }
   .hello h2 { font-size: 28px; padding-right: 110px; }
   .hello-text > .muted { padding-right: 110px; font-size: 13px; }
-  .bigpet { width: 120px; top: 6px; right: 6px; bottom: auto; }
+  .bigpet { width: 130px; top: 4px; right: 4px; bottom: auto; }
   .quick { grid-template-columns: 1fr 1fr; gap: 12px 14px; }
   .stats4 { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
   .stat4 { padding: 16px; }
