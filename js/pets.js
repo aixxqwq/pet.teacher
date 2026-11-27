@@ -440,11 +440,15 @@
   }
 
   // ---------- питомец-стикер (нарисованные картинки img/pets/<питомец>-<поза>.webp) ----------
-  // Картинки 320×320, питомец стоит внизу по центру. Одёжки из магазина рисуем поверх,
-  // поэтому для каждой картинки задана примерная «геометрия головы» (IMG_GEO).
-  const IMG_V = 2;                       // поменяй, если перерисуешь картинки (сброс кэша)
+  // Картинки квадратные, питомец по центру, ноги на одной линии. Одёжки из магазина рисуем поверх,
+  // поэтому задана примерная «геометрия головы» (IMG_GEO) — в координатах прежнего холста (OLD),
+  // а сдвиг/масштаб под нынешний холст (IMG_CANVAS — печатает tools/slice_sheets.py) считается ниже.
+  const IMG_V = 3;                       // поменяй, если перерисуешь картинки (сброс кэша)
   const POSES = ["idle", "happy", "sad", "eat", "read", "sleep", "play", "focus", "proud", "boba"];
-  const IMG_GEO = { headCy: 100, headRx: 60, headRy: 46, top: 62, eyeY: 102, eyeDX: 26 };
+  const IMG_GEO = { headCy: 100, headRx: 60, headRy: 66, top: 65, eyeY: 112, eyeDX: 26 };
+  const OLD = { side: 310, bottom: 310 }, IMG_CANVAS = { side: 279, bottom: 273 };
+  const WK = OLD.side / IMG_CANVAS.side;
+  const WEAR_TF = `matrix(${WK.toFixed(4)} 0 0 ${WK.toFixed(4)} ${(120 - 120 * WK).toFixed(2)} ${(((IMG_CANVAS.bottom - OLD.bottom) * 240) / IMG_CANVAS.side).toFixed(2)})`;
   function petSVG(key, pose = "idle", opts = {}) {
     if (!SPECIES[key]) key = "sheep";
     if (!POSES.includes(pose)) pose = "idle";
@@ -454,7 +458,7 @@
     const src = `img/pets/${key}-${pose}.webp?v=${IMG_V}`;
     return `<svg class="pet pet-img pet-${key} pose-${pose} merged" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">` +
       `<g class="p-all"><image href="${src}" x="0" y="0" width="240" height="240"/>` +
-      (wear ? `<g class="p-wear">${wear}</g>` : "") + `</g></svg>`;
+      (wear ? `<g class="p-wear" transform="${WEAR_TF}">${wear}</g>` : "") + `</g></svg>`;
   }
 
   // ---------- старый питомец, нарисованный кодом (запасной вариант) ----------

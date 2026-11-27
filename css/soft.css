@@ -113,7 +113,7 @@ body { background: var(--bg); }
 .float-card .muted { color: var(--muted); }
 .float-card .mini-xp { background: var(--line); }
 .float-card .mini-xp span { background: var(--blue); }
-.page-head .pet-box, .hero-pet .pet-box { filter: drop-shadow(0 14px 18px rgba(60, 80, 140, .22)); }
+.page-head .pet-box, .hero-pet .pet-box, .bigpet .pet-box { filter: drop-shadow(0 10px 12px rgba(60, 80, 140, .16)); }
 
 /* ---------- цифры и иконки ---------- */
 .stat-ico { background: transparent; color: var(--blue); border: 2.2px solid currentColor; box-shadow: none; border-radius: 11px; }
@@ -204,7 +204,7 @@ body { background: var(--bg); }
 .section-head p { font-size: 13px; }
 .page-head h1 { font-size: clamp(28px, 3.4vw, 40px); font-weight: 500; letter-spacing: -0.02em; margin: 10px 0 8px; }
 .page-head { min-height: 0; padding: 30px 36px; }
-.page-head .pet-box { width: 190px; margin: -10px 0 -20px; }
+.page-head .pet-box { width: 180px; margin: 0; justify-self: center; align-self: center; }
 .hero h1 { font-size: clamp(36px, 5vw, 56px); letter-spacing: -0.03em; }
 .card h2, .plan h2 { font-size: 20px; font-weight: 500; letter-spacing: -0.01em; }
 .action-card h3 { font-size: 20px; }
@@ -233,7 +233,7 @@ body { background: var(--bg); }
 .hello-lvl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 22px; font-size: 13px; }
 .hello-lvl .mini-xp { width: 90px; height: 6px; background: var(--line); }
 .hello-lvl .mini-xp span { background: var(--blue); }
-.bigpet { position: absolute; right: 14px; bottom: -6px; width: 350px; }   /* сидит на дне карточки, голова чуть выглядывает */
+.bigpet { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: 290px; }   /* ровно по центру справа */
 .bigpet .pet-box { width: 100%; }
 
 .notes { display: grid; gap: 14px; }
@@ -264,7 +264,7 @@ body { background: var(--bg); }
   .hello { grid-template-columns: 1fr; padding: 22px 18px 20px; margin-top: 10px; min-height: 0; }
   .hello h2 { font-size: 28px; padding-right: 110px; }
   .hello-text > .muted { padding-right: 110px; font-size: 13px; }
-  .bigpet { width: 130px; top: 4px; right: 4px; bottom: auto; }
+  .bigpet { width: 120px; top: 14px; right: 10px; transform: none; }
   .quick { grid-template-columns: 1fr 1fr; gap: 12px 14px; }
   .stats4 { grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
   .stat4 { padding: 16px; }
@@ -272,3 +272,4 @@ body { background: var(--bg); }
   .page-head h1 { font-size: 26px; }
 }
 .stat4 p { max-width: 120px; }
+@media (max-width: 760px) { .page-head .pet-box { width: 100px; } }
