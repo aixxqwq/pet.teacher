@@ -1,0 +1,125 @@
+/* ============================================================
+   Bilim Buddy — «игривый» слой поверх soft.css
+   Тёплый кремовый фон, радужные акценты как у питомцев-акварелек,
+   мягкие цветные пятна за питомцами и маленькие нарисованные звёздочки.
+   ============================================================ */
+
+:root { --sky: #5BA8F5; --mint: #4CC3A0; --lav: #A88BFF; --peach: #FFA06E; --honey: #F7B731; --rose: #FF7EB0; }
+:root[data-theme="dark"] { --sky: #74B6FF; --mint: #5ED3AE; --lav: #B9A2FF; --peach: #FFAE82; --honey: #FFC64D; --rose: #FF92BE; }
+
+/* «синие» значки и квадратики — теперь небесные, акцент сайта — персиковый */
+.c-blue { color: var(--sky); }
+.sq.b { background: var(--sky); }
+.ico.blue, .stats3 .card:nth-child(1) .stat-ico { color: var(--sky); }
+.ico.green { color: var(--mint); }
+
+/* ---------- кнопки: тёплый градиент, круглее и «мягче» ---------- */
+.btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger),
+.btn-sun, .hero .btn-white, .page-head .btn-white, .hero-actions .btn-sun {
+  background: var(--grad); color: #fff; border-radius: 14px;
+  box-shadow: 0 8px 18px -10px rgba(255, 110, 120, .75);
+}
+.btn:not(.btn-white):not(.btn-ghost):not(.btn-line):not(.btn-danger):hover, .btn-sun:hover {
+  box-shadow: 0 12px 24px -10px rgba(255, 110, 120, .85);
+}
+.btn-ghost, .hero .btn-line, .page-head .btn-line { border-radius: 14px; }
+
+/* ---------- меню: у каждого пункта свой цвет (радуга) ---------- */
+.side .nav a:nth-child(1) { --c: var(--peach); }
+.side .nav a:nth-child(2) { --c: var(--honey); }
+.side .nav a:nth-child(3) { --c: var(--mint); }
+.side .nav a:nth-child(4) { --c: var(--sky); }
+.side .nav a:nth-child(5) { --c: var(--lav); }
+.side .nav a:nth-child(6) { --c: var(--rose); }
+.side .nav a:nth-child(7) { --c: var(--red); }
+.side .nav a:nth-child(8) { --c: var(--mint); }
+.side .nav a:nth-child(9) { --c: var(--honey); }
+.side .nav a svg { color: var(--c); }
+body.side-mini .side .nav a, .side .nav a { color: var(--muted); }
+body.side-mini .side .nav a:hover, .side .nav a:hover { background: color-mix(in srgb, var(--c) 14%, transparent); }
+body.side-mini .side .nav a.active, .side .nav a.active { background: color-mix(in srgb, var(--c) 20%, transparent); color: var(--ink); }
+body.side-mini .side .nav a.active::after, .side .nav a.active::after { background: var(--c); }
+.side .nav a.active svg { transform: scale(1.08); }
+.side .nav a svg { transition: transform .25s var(--ease); }
+.side .nav a:hover svg { transform: rotate(-8deg) scale(1.08); }
+
+/* ---------- темы на «Учёбе»: каждая плитка своего цвета ---------- */
+.topic-grid .topic:nth-child(6n+1) { --c: var(--peach); }
+.topic-grid .topic:nth-child(6n+2) { --c: var(--sky); }
+.topic-grid .topic:nth-child(6n+3) { --c: var(--mint); }
+.topic-grid .topic:nth-child(6n+4) { --c: var(--honey); }
+.topic-grid .topic:nth-child(6n+5) { --c: var(--lav); }
+.topic-grid .topic:nth-child(6n+6) { --c: var(--rose); }
+.topic .code { color: var(--c); }
+.topic::before { background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 60%, #FF7A9A)); }
+.topic.sel .code { color: #fff; }
+.topic.sel { box-shadow: 0 18px 34px -20px var(--c); }
+
+/* ---------- заголовки разделов: цветная «капелька» снизу ---------- */
+.section-head h2::after, .notes-h b::after {
+  content: ""; display: block; width: 34px; height: 5px; border-radius: 5px; margin-top: 7px;
+  background: linear-gradient(90deg, var(--peach), var(--rose), var(--lav));
+}
+.notes-h b { flex-wrap: wrap; }
+.notes-h b::after { flex-basis: 100%; margin-left: 26px; }
+
+/* ---------- акварельное пятно за питомцем + звёздочки ---------- */
+.page-head, .hello { isolation: isolate; }
+.page-head::before {
+  display: block !important; content: ""; position: absolute; z-index: -1; animation: none; filter: blur(4px);
+  inset: auto calc(16% + 10px) auto auto; top: 18px; width: 280px; height: 230px; border-radius: 48% 52% 44% 56% / 55% 45% 55% 45%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--peach) 30%, transparent), transparent 100%),
+              radial-gradient(60% 50% at 70% 30%, color-mix(in srgb, var(--rose) 22%, transparent), transparent 70%);
+}
+.page-head::after {
+  display: block !important; content: "✦   ♡       ✧"; position: absolute; z-index: 3; white-space: pre;
+  inset: auto calc(16% + 230px) auto auto; top: 22px; width: auto; height: auto; opacity: 1;
+  background: none; -webkit-mask-image: none; mask-image: none;
+  font-size: 18px; letter-spacing: 6px; color: var(--honey);
+  text-shadow: 26px 34px 0 var(--rose), 150px 6px 0 var(--sky);
+  animation: twinkle 3.6s ease-in-out infinite;
+}
+.hello::before {
+  content: ""; position: absolute; z-index: -1; right: 20px; top: 50%; transform: translateY(-50%);
+  width: 310px; height: 270px; border-radius: 52% 48% 56% 44% / 45% 55% 45% 55%; filter: blur(4px);
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--peach) 28%, transparent), transparent 100%),
+              radial-gradient(60% 50% at 30% 70%, color-mix(in srgb, var(--sky) 18%, transparent), transparent 70%);
+}
+.hello::after {
+  content: "✧     ✦"; position: absolute; right: 300px; top: 34px; white-space: pre; font-size: 18px; color: var(--honey);
+  text-shadow: 220px 210px 0 var(--rose); animation: twinkle 3.6s ease-in-out infinite;
+}
+.hello { overflow: hidden; }
+@keyframes twinkle { 50% { opacity: .45; transform: translateY(-3px); } }
+
+/* ---------- карточки: мягче и теплее ---------- */
+.card, .num, .empty, .quiz-card { border-radius: 22px; }
+.stat4 { border-top: 4px solid transparent; }
+.stats4 .stat4:nth-child(1) { border-top-color: color-mix(in srgb, var(--red) 55%, transparent); }
+.stats4 .stat4:nth-child(2) { border-top-color: color-mix(in srgb, var(--sky) 55%, transparent); }
+.stats4 .stat4:nth-child(3) { border-top-color: color-mix(in srgb, var(--honey) 60%, transparent); }
+.stats4 .stat4:nth-child(4) { border-top-color: color-mix(in srgb, var(--mint) 55%, transparent); }
+.stats3 .card:nth-child(1) { border-top: 4px solid color-mix(in srgb, var(--sky) 55%, transparent); }
+.stats3 .card:nth-child(2) { border-top: 4px solid color-mix(in srgb, var(--red) 55%, transparent); }
+.stats3 .card:nth-child(3) { border-top: 4px solid color-mix(in srgb, var(--honey) 60%, transparent); }
+.note:hover .arr { background: var(--peach); border-color: var(--peach); color: #fff; }
+.quick i { border-radius: 7px; }
+.hello-lvl .mini-xp span, .segs i.on, .plan-bar i, .progress-line span { background: var(--grad); }
+.segs.low i.on { background: var(--red); }
+.eyebrow::before, .hero .eyebrow::before, .page-head .eyebrow::before { background: var(--grad); }
+
+/* ---------- фон: еле заметные тёплые пятна ---------- */
+body {
+  background:
+    radial-gradient(40% 30% at 92% 4%, color-mix(in srgb, var(--peach) 14%, transparent), transparent 70%),
+    radial-gradient(35% 30% at 10% 96%, color-mix(in srgb, var(--sky) 10%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+@media (max-width: 760px) {
+  .page-head::before { inset: auto 0 auto auto; top: 50%; transform: translateY(-50%); width: 140px; height: 130px; }
+  .page-head::after, .hello::after { display: none !important; }
+  .hello::before { width: 150px; height: 140px; right: 0; top: 70px; }
+}
+@media (prefers-reduced-motion: reduce) { .page-head::after, .hello::after { animation: none; } }
