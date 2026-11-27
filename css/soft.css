@@ -276,6 +276,7 @@ body { background: var(--bg); }
 
 /* питомцы в шапках страниц — чуть крупнее, ровно по центру справа, внутри блока */
 @media (min-width: 761px) {
-  .page-head { grid-template-columns: minmax(0, 1fr) 240px minmax(0, 17%); }   /* третья пустая колонка — питомец стоит левее края */
-  .page-head .pet-box { width: 240px; }
+  .page-head { grid-template-columns: minmax(0, 1fr) 260px minmax(0, 16%); }   /* третья пустая колонка — питомец стоит левее края */
+  .page-head { overflow: visible; }
+  .page-head .pet-box { width: 260px; align-self: start; margin-top: -78px; }   /* голова чуть выглядывает за верхний край */
 }
