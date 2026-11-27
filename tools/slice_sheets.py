@@ -93,28 +93,30 @@ def curve(lo, hi):
 def enhance(rgb, obj):
     """Увеличение в SCALE раз с чёткими линиями."""
     size = (rgb.width * SCALE, rgb.height * SCALE)
+    rgb_src = rgb
     # под прозрачными местами — цвет контура, чтобы края не светлели
     rgb = Image.composite(rgb, Image.new("RGB", rgb.size, (74, 55, 44)), obj)
     up = rgb.resize(size, Image.LANCZOS)
     # «перерисовываем» тёмные линии: маска тёмного → размытие → резкая кривая
-    L = up.convert("L")
-    dark = Image.eval(L, curve(70, 165))
-    dark = Image.eval(dark, lambda v: 255 - v)                       # 255 = линия
-    dark = dark.filter(ImageFilter.GaussianBlur(SCALE * 0.45))
-    dark = Image.eval(dark, curve(95, 165))                          # чёткий край линии
-    inkc = up.filter(ImageFilter.MinFilter(SCALE * 2 + 1))           # собственный цвет линии (самый тёмный рядом)
+    # только настоящие тёмные линии (не тени меха), край линии делаем резким, но толщину не меняем.
+    # Линию ищем по картинке на БЕЛОМ фоне — иначе фон вокруг тоже считался бы «линией» (ступеньки по краю).
+    white = Image.composite(rgb_src, Image.new("RGB", rgb_src.size, (255, 255, 255)), obj)
+    L = white.resize(size, Image.LANCZOS).convert("L")
+    dark = Image.eval(L, lambda v: 255 - curve(55, 135)(v))          # 255 = линия
+    dark = dark.filter(ImageFilter.GaussianBlur(SCALE * 0.4))
+    dark = Image.eval(dark, curve(115, 175))                         # чёткий край, линия чуть тоньше середины
+    inkc = up.filter(ImageFilter.MinFilter(3))                       # цвет самой линии
     up = Image.composite(inkc, up, dark)
-    # самая внешняя полоска силуэта — это контур: красим её цветом линии (убирает светлые «зубчики» от бывшей обводки)
-    core = obj.filter(ImageFilter.MinFilter(5)).resize(size, Image.BILINEAR)
-    up = Image.composite(up, inkc, core)
-    up = up.filter(ImageFilter.UnsharpMask(radius=SCALE * 0.6, percent=60, threshold=2))
-    # край силуэта: внутренность (чуть поджатая) + сама тёмная линия контура — она гладкая, без «лесенки»
+    up = up.filter(ImageFilter.UnsharpMask(radius=SCALE * 0.5, percent=45, threshold=2))
+    # край силуэта: внутренность (чуть поджатая) + сама тёмная линия контура — гладко, без «лесенки»
     a = obj.filter(ImageFilter.MinFilter(5)).resize(size, Image.LANCZOS)
     a = a.filter(ImageFilter.GaussianBlur(SCALE * 0.8))
-    a = Image.eval(a, curve(90, 170))
-    line = Image.composite(dark, Image.new("L", size, 0), obj.filter(ImageFilter.MaxFilter(5)).resize(size, Image.BILINEAR))
-    a = ImageChops.lighter(a, line)
-    a = a.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))   # закрываем светлые точки внутри линии
+    a = Image.eval(a, curve(100, 180))
+    line = Image.composite(dark, Image.new("L", size, 0), obj.filter(ImageFilter.MaxFilter(3)).resize(size, Image.BILINEAR))
+    a0 = ImageChops.lighter(a, line)
+    a = a0.filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.MinFilter(5))   # закрываем светлые точки внутри линии
+    holes = ImageChops.subtract(a, a0)                                         # эти точки красим цветом линии
+    up = Image.composite(inkc, up, holes)
     out = up.convert("RGBA")
     out.putalpha(a)
     return out
